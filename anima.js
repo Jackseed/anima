@@ -14,6 +14,7 @@ function states()
           onState: 'tokenToEnergyPhaseZone',
           description: _('${actplayer} has to play'),
           descriptionmyturn: _('${you} have to play'),
+          possibleactions: ['selectToken'],
           transitions: { done: 201 }
       },
       
@@ -56,6 +57,7 @@ function tokenToEnergyPhaseZone() {
 
   bga.moveTo(tokenId, energyPhaseZone);
   bga.trace(this.getActivePlayerEnergyPool());
+  bga.trace(this.checkPhaseZone());
 }
 
 function getActivePlayerEnergyPool() {
@@ -65,7 +67,6 @@ function getActivePlayerEnergyPool() {
     if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {tag: 'ENERGY_POOL_YELLOW'},'value');
     return null;
 }
-
 
 function checkEndOfGame() {
     var isGameEnd = (this.getActivePlayerEnergyPool() >= 25);
@@ -78,9 +79,28 @@ function checkEndOfGame() {
     }
 }
 
+function onPhaseTokenClick(element_id) {
+  var zoneParentId = bga.getElement( {id: element_id}, 'parent');
+  var zoneParentName = bga.getElement({id: zoneParentId}, 'name');
 
-//function endOfTurn() {
-    
-    //bga.nextPlayer();
-    //bga.nextState('done');
-//}
+  bga.checkAction('selectToken');
+
+  switch (zoneParentName) {
+    case 'Energy_phase_zone':
+    bga.log("you're in energy phase, and that's so cooool!");
+    break;
+    case 'Buying_phase_zone':
+    bga.log("you're in buying phase, give me your money!");
+    break;
+    case 'Killing_phase_zone':
+    bga.log("you're in killing phase, please calm the fuck down...");
+    break;
+    case 'Feeding_phase_zone':
+    bga.log("you're in feeding phase, a not fed animal is a dead animal.");
+    break;
+    case 'End_of_turn_phase_zone':
+    bga.log("you're in end of turn, that don't make any sense but we don't care.");
+    break;
+  }
+}
+
