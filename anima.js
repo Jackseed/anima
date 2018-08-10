@@ -101,7 +101,7 @@ function onPhaseTokenClick(element_id) {
     break;
     case 'End_of_turn_phase_zone':
     bga.log("you're in end of turn, that don't make any sense but we don't care.");
-    break;h
+    break;
   }
 }
 
@@ -125,26 +125,27 @@ function onClickCard( card_id, selection_ids ) {
     if (bga.getActivePlayerColor() == 'ffa500') explicitActiveColor = 'YELLOW';
 
     var selected_card_id = this.getSelectedCard();
-    var selected_card_order = bga.getElement( {id: selected_card_id}, "c_order");
+    var selected_card_order = null;
+    if (selected_card_id !== null) selected_card_order = bga.getElement( {id: selected_card_id}, "c_order");
             
     // Check play action
     bga.checkAction('selectCard');
     
     // check if the card clicked is on a board
-    if (bga.hasTag(parent_id, 'BOARD') {
+    if (bga.hasTag(parent_id, 'BOARD')) {
       if (!bga.hasTag(parent_id, 'BOARD_'+ explicitActiveColor )) {
         bga.cancel( _('You have to chose a card you control') );      
       } else {
           switch (active_phase_zone_name) {
             case 'Energy_phase_zone':
-              if (bga.hasTag(card_id, 'SPECIAL_EFFECT') {
+              if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
                 bga.log("not yet...");
               } else {
                 bga.cancel( _("This card has not any effect."));
               }
               break;
             case 'Buying_phase_zone':
-              if (bga.hasTag(card_id, 'SPECIAL_EFFECT') {
+              if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
                 bga.log("not yet...");
               } else {
                 bga.cancel( _("You have to select a card from the evolution line."));
@@ -156,7 +157,7 @@ function onClickCard( card_id, selection_ids ) {
               bga.addStyle( card_id, 'selected' );
               break;
             case 'Feeding_phase_zone':
-              if (bga.hasTag(card_id, 'SPECIAL_EFFECT') {
+              if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
                 bga.log("not yet...");
               } else {
                 bga.cancel( _("This card has not any effect."));
@@ -167,7 +168,7 @@ function onClickCard( card_id, selection_ids ) {
     } 
     
     // Cas où la carte est dans le cimietière (visible ou non)
-    if (bga.hasTag(parent_id, 'COUNT_GRAVEYARD_RED') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_GREEN') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_BLUE') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_YELLOW') {
+    if (bga.hasTag(parent_id, 'COUNT_GRAVEYARD_RED') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_GREEN') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_BLUE') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_YELLOW') ){
     
       // cas où le cimetière n'est pas visible
       if (card_parent.howToArrange === 'stacked') {
@@ -200,11 +201,11 @@ function onClickCard( card_id, selection_ids ) {
         } else {
         // Cas où une carte a été précédemment sélectionnée
         // la déplace au cimetière si phase 3
-            if ((bga.hasTag(parent_id, 'GRAVEYARD_' explicitActiveColor)) && (active_phase_zone_name === 'Killing_phase_zone')) {
+            if ((bga.hasTag(parent_id, 'GRAVEYARD_'+explicitActiveColor)) && (active_phase_zone_name === 'Killing_phase_zone')) {
               bga.moveTo(selected_card_id, parent_id);
             } else {
         // ne peut pas être fait sinon
-              bga.cancel( _('You cannot play this card here.'));
+              bga.cancel( _('You cannot play this card here.') );
             }
         }
       }
@@ -249,7 +250,7 @@ function onClickCard( card_id, selection_ids ) {
       }
     }
 
-    if (bga.hasTag(parent_id, 'EVOLUTION_LINE') {
+    if (bga.hasTag(parent_id, 'EVOLUTION_LINE')) {
       bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
       bga.addStyle( card_id, 'selected' );      
     }
