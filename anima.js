@@ -178,18 +178,22 @@ function onClickCard( card_id, selection_ids ) {
           // cards_id = toutes les cartes du cimetière
           var cards_ids = bga.getElementsArray( {parent: card_parent.id} );
           var expand_id = bga.getElement( {tag: 'EXPAND_GRAVEYARD_'+ explicitActiveColor } );
+          var cancel_button_id = bga.getElement ({name: 'Cancel_button'});
+          var cancel_button_zone_id = bga.getElement ({name: 'Cancel_button_zone'});
           // crée la zone où les cartes du cimetière seront visibles    
           var props = [];
           props[expand_id] = {
-            x: 120, 
+            x: 250, 
             y: 107, 
-            width:500, 
-            height:400, 
+            width:700, 
+            height:500, 
             visible: 'player'+bga.getActivePlayerColor(),  
             howToArrange: 'spreaded', 
             inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'            
           };
+          
           bga.setProperties( props );
+          
           // déplace les cartes du cimetière sur la nouvelle zone
           bga.moveTo( cards_ids, expand_id );
               
@@ -229,7 +233,8 @@ function onClickCard( card_id, selection_ids ) {
             
             // Collapse collected cards
             var collapsed_id = bga.getElement( {tag: 'GRAVEYARD_'+explicitColor} );
-            
+            var cancel_button_id = bga.getElement ({name: 'Cancel_button'});
+            var cancel_button_zone_id = bga.getElement ({name: 'Cancel_button_zone'});
             // remet à sa place le cimetière étendu
             var props = [];
             props[card_parent.id] = {
@@ -241,7 +246,11 @@ function onClickCard( card_id, selection_ids ) {
               howToArrange: 'stacked',
               inlineStyle: 'background-color: transparent'
             };
+            
+
+
             bga.setProperties( props );
+            
             
             bga.moveTo( cards_ids, collapsed_id );
             
