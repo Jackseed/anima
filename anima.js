@@ -181,13 +181,13 @@ function onClickCard( card_id, selection_ids ) {
           // crée la zone où les cartes du cimetière seront visibles    
           var props = [];
           props[expand_id] = {
-            x: 226, 
-            y: -5, 
-            width:530, 
-            height:800, 
+            x: 120, 
+            y: 107, 
+            width:500, 
+            height:400, 
             visible: 'player'+bga.getActivePlayerColor(),  
             howToArrange: 'spreaded', 
-            inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
+            inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'            
           };
           bga.setProperties( props );
           // déplace les cartes du cimetière sur la nouvelle zone
