@@ -135,6 +135,7 @@ function onPhaseTokenClick(token_id) {
 
     if (food_pool > sum_food_cost){
        bga.moveTo(token_id, end_of_turn_phase_zone_id);
+       bga.nextPlayer();
        bga.nextState('done');
     } else {
         bga.cancel( _('You do not have enough food to feed all your creatures.'))
@@ -150,6 +151,7 @@ function onPhaseTokenClick(token_id) {
     break;
   }
 }
+
 
 
 function onClickCard( card_id, selection_ids ) {
