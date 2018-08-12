@@ -172,15 +172,9 @@ function onClickCard( card_id, selection_ids ) {
         if(card_parent.tags[i] === 'BLUE') clickedColor = 'BLUE';
         if(card_parent.tags[i] === 'YELLOW') clickedColor = 'YELLOW';
       }
-    bga.log(clickedColor);
-
-    var explicitActiveColor = null;
-    if (bga.getActivePlayerColor() == 'ff0000') explicitActiveColor = 'RED';
-    if (bga.getActivePlayerColor() == '008000') explicitActiveColor = 'GREEN';
-    if (bga.getActivePlayerColor() == '0000ff') explicitActiveColor = 'BLUE';
-    if (bga.getActivePlayerColor() == 'ffa500') explicitActiveColor = 'YELLOW';
-
+    var explicitActiveColor = this.getExplicitActiveColor();
     var selected_card_id = this.getSelectedCard();
+    // l'ordre = esprit, eau,...
     var selected_card_order = null;
     if (selected_card_id !== null) selected_card_order = bga.getElement( {id: selected_card_id}, "c_order");
     
@@ -194,34 +188,38 @@ function onClickCard( card_id, selection_ids ) {
       } else {
           switch (active_phase_zone_name) {
             case 'Energy_phase_zone':
-              if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
-                bga.log("not yet...");
-              } else {
-                bga.cancel( _("This card has not any effect."));
-              }
-              break;
+            case 'Feeding_phase_zone':
+                if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
+                    bga.log("Special effect not yet implemented...");
+                    } else {
+                    bga.cancel( _("This card has not any effect."));
+                    }
+                break;
             case 'Buying_phase_zone':
-              if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
-                bga.log("not yet...");
-              } else {
-                bga.cancel( _("You have to select a card from the evolution line."));
-              }
-              break;
+                bga.cancel( _("You should select a card from the Evolution line."));
+                break;
             case 'Killing_phase_zone':
               // in any case, should select the card clicked and deselect the one clicked before, if any
               bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
               bga.addStyle( card_id, 'selected' );
               break;
-            case 'Feeding_phase_zone':
-              if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
-                bga.log("not yet...");
-              } else {
-                bga.cancel( _("This card has not any effect."));
-                break;
               }
-          }
         }
-    } 
+    }
+    
+    if (bga.hasTag(parent_id, 'EVOLUTION_LINE')) {
+        if (active_phase_zone_name !== 'Buying_phase_zone') {
+            bga.cancel( _('Please wait for the Enrolling phase.'));
+        } else {
+            bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+            bga.addStyle( card_id, 'selected' );      
+        }
+    }
+    
+    if (bga.hasTag(parent_id, 'DECK')) {
+            bga.cancel( _("You cannot do that (click on deck)"));
+    }
+    
    
    // Cas où la carte est dans le cimietière (visible ou non)
     if (bga.hasTag(parent_id, 'COUNT_GRAVEYARD_RED') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_GREEN') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_BLUE') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_YELLOW') ){
@@ -310,10 +308,7 @@ function onClickCard( card_id, selection_ids ) {
       }
     }
     
-    if (bga.hasTag(parent_id, 'EVOLUTION_LINE')) {
-      bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-      bga.addStyle( card_id, 'selected' );      
-    }
+
 }
 
 function getSelectedCard() {
