@@ -47,8 +47,7 @@ function postSetup() {
         // setProperties a l'air de fonctionner avec un tableau de type id => { x: y} avec { x: y} la propriété à setter
         bga.setProperties( props );
     }
-
-
+ 
     // appelle la transition "done" dans l'état 100
     bga.nextState('done');
 }
@@ -57,11 +56,21 @@ function tokenToEnergyPhaseZone() {
   var tokenId = bga.getElement( {name: "Phase_token"});
   var energyPhaseZone = bga.getElement( {name: "Energy_phase_zone"});
   var test_card_energy_cost = bga.getElement ({name: "Test_card"}, 'c_energyCost');
-
+  
   bga.moveTo(tokenId, energyPhaseZone);
   bga.log(this.getActivePlayerEnergyPool());
   bga.log(test_card_energy_cost);
-  this.checkEndOfGame();
+}
+
+function checkEndOfGame() {
+    var isGameEnd = (this.getActivePlayerEnergyPool() >= 25);
+
+    if (!isGameEnd) {
+    bga.nextState('done');
+    } else {
+       // End game
+    bga.endGame();
+    }
 }
 
 function getActivePlayerEnergyPool() {
@@ -72,41 +81,76 @@ function getActivePlayerEnergyPool() {
     return null;
 }
 
-function checkEndOfGame() {
-    var isGameEnd = (this.getActivePlayerEnergyPool() >= 25);
-
-    if (!isGameEnd) {
-    return;
-    } else {
-       // End game
-    bga.endGame();
-    }
+function getActivePlayerFoodPool() {
+    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement( {tag: 'FOOD_POOL_RED'}, 'value');
+    if (bga.getActivePlayerColor() == '008000') return bga.getElement( {tag: 'FOOD_POOL_GREEN'}, 'value');
+    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement( {tag: 'FOOD_POOL_BLUE'}, 'value');
+    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {tag: 'FOOD_POOL_YELLOW'},'value');
+    return null;
 }
 
-function onPhaseTokenClick(element_id) {
-  var zoneParentId = bga.getElement( {id: element_id}, 'parent');
-  var zoneParentName = bga.getElement({id: zoneParentId}, 'name');
+function getExplicitActiveColor() {
+    if (bga.getActivePlayerColor() == 'ff0000') return 'RED';
+    if (bga.getActivePlayerColor() == '008000') return 'GREEN';
+    if (bga.getActivePlayerColor() == '0000ff') return 'BLUE';
+    if (bga.getActivePlayerColor() == 'ffa500') return 'YELLOW';
+    return null;
+}
 
-  bga.checkAction('selectToken');
+function getActivePlayerFoodCost() {
+    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_food_costs = bga.getElementsArray({parent: active_board_id}, 'c_foodCost');
+    var sum_food_cost = board_food_costs.reduce(add, 0);
 
-  switch (zoneParentName) {
+    function add(a, b) {
+    return parseInt(a) + parseInt(b);
+    }
+    return sum_food_cost;
+}
+
+function onPhaseTokenClick(token_id) {
+    var zone_parent_id = bga.getElement( {id: token_id}, 'parent');
+    var zone_parent_name = bga.getElement({id: zone_parent_id}, 'name');
+    var buying_phase_zone_id = bga.getElement({name: 'Buying_phase_zone'});
+    var killing_phase_zone_id = bga.getElement({name: 'Killing_phase_zone'});
+    var feeding_phase_zone_id = bga.getElement({name: 'Feeding_phase_zone'});
+    var end_of_turn_phase_zone_id = bga.getElement({name: 'End_of_turn_phase_zone'});
+  
+    bga.checkAction('selectToken');
+
+  switch (zone_parent_name) {
     case 'Energy_phase_zone':
-    bga.log("you're in energy phase, and that's so cooool!");
+    bga.moveTo(token_id, buying_phase_zone_id);
+    bga.log("You are entering Enrolling phase, be wise !");
     break;
+    
     case 'Buying_phase_zone':
-    bga.log("you're in buying phase, give me your money!");
+    bga.moveTo(token_id, killing_phase_zone_id);
+    bga.log("Soon, blood will flow and life goes on. ");
     break;
+    
     case 'Killing_phase_zone':
-    bga.log("you're in killing phase, please calm the fuck down...");
+    var food_pool = this.getActivePlayerFoodPool();
+    var sum_food_cost = this.getActivePlayerFoodCost();
+
+    if (food_pool > sum_food_cost){
+       bga.moveTo(token_id, end_of_turn_phase_zone_id);
+       bga.nextState('done');
+    } else {
+        bga.cancel( _('You do not have enough food to feed all your creatures.'))
+    }
     break;
+    
     case 'Feeding_phase_zone':
     bga.log("you're in feeding phase, a not fed animal is a dead animal.");
     break;
+    
     case 'End_of_turn_phase_zone':
-    bga.log("you're in end of turn, that don't make any sense but we don't care.");
+    bga.log("End of your turn, congratz you made it!");
     break;
   }
 }
+
 
 function onClickCard( card_id, selection_ids ) {
     // Cancel event propagation
@@ -280,13 +324,14 @@ function getSelectedCard() {
 }
 
 
+
 function checkValidDestination( selected_card_id, card_id ) {
     var orig_zone_id = bga.getElement( {id: selected_card_id}, 'parent' );
     var dest_zone_id = bga.getElement( {id: card_id}, 'parent' );
     
     if (bga.hasTag( dest_zone_id, 'DECK')) {
         // Forbidden
-        bga.cancel( _('You cannot send a card to the deck or graveyard!') );
+        bga.cancel( _('You cannot send a card to the deck!') );
     } else if (bga.hasTag( dest_zone_id, 'GRAVEYARD')) {
       // Forbidden
         bga.cancel( _('You cannot send a card to the graveyard!') );
