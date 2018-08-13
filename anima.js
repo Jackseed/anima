@@ -108,6 +108,15 @@ function getActivePlayerFoodCost() {
     return sum_food_cost;
 }
 
+function getSelectedCard() {
+    var selected_cards = bga.getElementsArray( {tag: 'sbstyle_selected' } );
+    var card_id = null;
+    if (selected_cards.length > 0) {
+        card_id = selected_cards[0];
+    }
+    return card_id;
+}
+
 function killCreature(card_id) {
     var dest_zone_id = bga.getElement({tag: 'GRAVEYARD_' + this.getExplicitActiveColor()});
     var active_food_pool_id = null;
@@ -325,35 +334,53 @@ function onClickCard( card_id, selection_ids ) {
 
 }
 
-function getSelectedCard() {
-    var selected_cards = bga.getElementsArray( {tag: 'sbstyle_selected' } );
-    var card_id = null;
-    if (selected_cards.length > 0) {
-        card_id = selected_cards[0];
-    }
-    return card_id;
-}
+function onClickZone(zone_id) {
+    var selected_card_id = this.getSelectedCard();
+    var phase_token_id = bga.getElement( {name: 'Phase_token'});
+    var phase_token_zone = bga.getElement ( {id: phase_token_id}, 'parent');
+    var active_phase_zone_name = bga.getElement ( {id: phase_token_zone}, 'name');
+    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_graveyard_id = bga.getElement({tag: 'GRAVEYARD_' + this.getExplicitActiveColor()});
 
-
-function checkValidDestination( selected_card_id, card_id ) {
-    var orig_zone_id = bga.getElement( {id: selected_card_id}, 'parent' );
-    var dest_zone_id = bga.getElement( {id: card_id}, 'parent' );
-    
-    if (bga.hasTag( dest_zone_id, 'DECK')) {
-        // Forbidden
-        bga.cancel( _('You cannot send a card to the deck!') );
-    } else if (bga.hasTag( dest_zone_id, 'GRAVEYARD')) {
-      // Forbidden
-        bga.cancel( _('You cannot send a card to the graveyard!') );
-    } else if (bga.hasTag( dest_zone_id, 'EVOLUTION_LINE')) {
-      // Forbidden
-        bga.cancel( _('You should select another zone!') );
+    if (selected_card_id === null) {
+        bga.cancel('Please select a card.');
     } else {
-      var energy_pool = this.getActivePlayerEnergyPool();
-      var energy_cost = bga.getElement( {id: selected_card_id}, "c_energyCost");
-        if (energy_pool < energy_cost) {
-      // not enough energy to pay the card    
-        bga.cancel( _('You do not have enough energy.') );
-        }
+            switch (active_phase_zone_name) {
+                case 'Energy_phase_zone':
+                case 'Feeding_phase_zone':
+                    if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
+                        bga.log("Special effect not yet implemented...");
+                        } else {
+                        bga.cancel( _("You cannot do this right now."));
+                        }
+                    break;
+                case 'Buying_phase_zone':
+                    // cas où une card de l'evolution line ou du cimetière a été sélectionnée avant
+                    // premier cas où la carte est jouée sur son propre board
+                    if (zone_id == active_board_id) {
+                        bga.log('enroll creature à coder!');
+                    // deuxième cas du virus joué chez l'autre    
+                    } else if ( (zone_id !== active_board_id) && (bga.hasTag(zone_id, 'BOARD')) ) {
+                        if ((bga.hasTag(selected_card_id, 'SPECIAL_EFFECT')) && (bga.getElement({id: selected_card_id}, 'c_specialEffect') === 'virus')) {
+                            bga.log('enroll creature à coder! (virus)');   
+                        } else {
+                            bga.cancel( _("This creature is not a virus.")); 
+                        }
+                    // cas où le joueur ne choisit pas un board pour sa carte sélectionnée
+                    } else {
+                        bga.cancel( _("Select a board to enroll this creature."));
+                    }
+                    break;
+                case 'Killing_phase_zone':
+                    if (zone_id == active_graveyard_id) {
+                        this.killCreature(selected_card_id);
+                    } else {
+                        bga.cancel(_('The creature you want to kill must be sent to your graveyard.'))
+                    }
+                    break;
+            }
     }
 }
+
+
+
