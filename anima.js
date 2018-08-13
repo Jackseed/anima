@@ -108,6 +108,24 @@ function getActivePlayerFoodCost() {
     return sum_food_cost;
 }
 
+function killCreature(card_id) {
+    var dest_zone_id = bga.getElement({tag: 'GRAVEYARD_' + this.getExplicitActiveColor()});
+    var active_food_pool_id = null;
+    if (bga.getActivePlayerColor() == 'ff0000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_RED'});
+    if (bga.getActivePlayerColor() == '008000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_GREEN'});
+    if (bga.getActivePlayerColor() == '0000ff') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_BLUE'});
+    if (bga.getActivePlayerColor() == 'ffa500') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_YELLOW'});
+    var card_food_production = bga.getElement({id: card_id}, 'c_foodProduction');
+    var food_pool = getActivePlayerFoodPool();
+    var props = [];
+    var new_food_pool = parseInt(food_pool) + parseInt(card_food_production);
+    props[active_food_pool_id] = {value: new_food_pool};
+    
+    bga.moveTo(card_id, dest_zone_id);
+    bga.setProperties(props);
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
 function onPhaseTokenClick(token_id) {
     var zone_parent_id = bga.getElement( {id: token_id}, 'parent');
     var zone_parent_name = bga.getElement({id: zone_parent_id}, 'name');
@@ -151,7 +169,6 @@ function onPhaseTokenClick(token_id) {
     break;
   }
 }
-
 
 
 function onClickCard( card_id, selection_ids ) {
@@ -206,7 +223,6 @@ function onClickCard( card_id, selection_ids ) {
               }
         }
     }
-    
     if (bga.hasTag(parent_id, 'EVOLUTION_LINE')) {
         if (active_phase_zone_name !== 'Buying_phase_zone') {
             bga.cancel( _('Please wait for the Enrolling phase.'));
@@ -215,53 +231,58 @@ function onClickCard( card_id, selection_ids ) {
             bga.addStyle( card_id, 'selected' );      
         }
     }
-    
     if (bga.hasTag(parent_id, 'DECK')) {
             bga.cancel( _("You cannot do that (click on deck)"));
     }
-    
-   
-   // Cas où la carte est dans le cimietière (visible ou non)
-    if (bga.hasTag(parent_id, 'COUNT_GRAVEYARD_RED') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_GREEN') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_BLUE') || bga.hasTag(parent_id, 'COUNT_GRAVEYARD_YELLOW') ){
-    
+    // Cas où la carte est dans le cimietière (visible ou non)
+    if (bga.hasTag(parent_id, 'GRAVE')) {
       // cas où le cimetière n'est pas visible
       if (card_parent.howToArrange === 'stacked') {
         // Cas où aucune carte n'est sélectionnée
         if (selected_card_id === null) {
-          // Expand collected cards
-          // cards_id = toutes les cartes du cimetière
+            // Expand collected cards
+            // cards_id = toutes les cartes du cimetière
             var cards_ids = bga.getElementsArray( {parent: card_parent.id} );
             var expand_id = bga.getElement( {tag: 'EXPAND_GRAVEYARD_'+ clickedColor } );
 
-          // crée la zone où les cartes du cimetière seront visibles    
-          var props = [];
-          props[expand_id] = {
-            x: 250, 
-            y: 130, 
-            width:700, 
-            height:500, 
-            visible: 'player'+bga.getActivePlayerColor(), 
-            howToArrange: 'spreaded', 
-            inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
-          };
-          
-          bga.setProperties( props );
-          
+    
+            // crée la zone où les cartes du cimetière seront visibles
+            if (clickedColor === 'RED') {
+                var props = [];
+                props[expand_id] = {
+                    x: 250, 
+                    y: 130, 
+                    width:700, 
+                    height:500, 
+                    visible: 'player'+bga.getActivePlayerColor(), 
+                    howToArrange: 'spreaded', 
+                    inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
+                };
+            }
+            // règle le décalage apparu je ne sais pas trop pour quoi quand on clique sur le vert...
+            if (clickedColor === 'GREEN') {
+                var props = [];
+                props[expand_id] = {
+                    x: -600, 
+                    y: 130, 
+                    width:700, 
+                    height:500, 
+                    visible: 'player'+bga.getActivePlayerColor(), 
+                    howToArrange: 'spreaded', 
+                    inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
+                };
+            }
+            bga.setProperties( props );
           // déplace les cartes du cimetière sur la nouvelle zone
           bga.moveTo( cards_ids, expand_id );
-              
-          // Flip cards 
-          bga.pause( 1500 );
-          for (var j = 0; j < cards_ids.length; j++) {
-          bga.flip( cards_ids[j] );
-          }
+
         } else {
-        // Cas où une carte a été précédemment sélectionnée
-        // la déplace au cimetière si phase 3
+            // Cas où une carte a été précédemment sélectionnée
+            // la déplace au cimetière si phase 3
             if ((bga.hasTag(parent_id, 'GRAVEYARD_'+explicitActiveColor)) && (active_phase_zone_name === 'Killing_phase_zone')) {
-              bga.moveTo(selected_card_id, parent_id);
+              this.killCreature(selected_card_id);
             } else {
-        // ne peut pas être fait sinon
+            // ne peut pas être fait sinon
               bga.cancel( _('You cannot play this card here.') );
             }
         }
@@ -276,15 +297,8 @@ function onClickCard( card_id, selection_ids ) {
         } else {
         // sinon referme le cimetière en mode invisible
 
-        //  retourne les cartes face cachées     
-            var cards_ids = bga.getElementsArray( {parent: card_parent.id} );
-            for (var j = 0; j < cards_ids.length; j++) {
-                    bga.flip( cards_ids[j] );
-            }
-            
-            bga.pause( 1500 );
-            
             // Collapse collected cards
+            var cards_ids = bga.getElementsArray( {parent: card_parent.id} );
             var collapsed_id = bga.getElement( {tag: 'GRAVEYARD_' + clickedColor} );
             
             // remet à sa place le cimetière étendu
@@ -319,7 +333,6 @@ function getSelectedCard() {
     }
     return card_id;
 }
-
 
 
 function checkValidDestination( selected_card_id, card_id ) {
