@@ -135,6 +135,40 @@ function killCreature(card_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
 
+function enrollCreature(card_id) {
+    var dest_zone_id = bga.getElement({tag: 'BOARD_' + this.getExplicitActiveColor()});
+    var active_energy_pool_id = null;
+    if (bga.getActivePlayerColor() == 'ff0000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_RED'});
+    if (bga.getActivePlayerColor() == '008000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_GREEN'});
+    if (bga.getActivePlayerColor() == '0000ff') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_BLUE'});
+    if (bga.getActivePlayerColor() == 'ffa500') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
+    var card_energy_cost = bga.getElement({id: card_id}, 'c_energyCost');
+    var energy_pool = getActivePlayerEnergyPool();
+    
+    if (parseInt(energy_pool) < parseInt(card_energy_cost)) {
+        bga.cancel(_('You do not have enough energy for this.'));
+    } else {
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    var props = [];
+    var new_energy_pool = parseInt(energy_pool) - parseInt(card_energy_cost);
+    props[active_energy_pool_id] = {value: new_energy_pool};
+    bga.setProperties(props);
+    bga.moveTo(card_id, dest_zone_id);
+    bga.pause(1500);
+    
+    var deck_id = bga.getElement({name: 'Deck'});
+    var deck_cards = bga.getElementsArray( {parent: deck_id} );
+    var card_on_top_id = deck_cards[deck_cards.length - 1];
+    var evolution_line_id = bga.getElement({name: 'Evolution_line'});
+    
+        if (deck_cards.length === parseInt(0)) {
+            bga.log('There is no more card in the deck.');
+        } else {
+        bga.moveTo(card_on_top_id, evolution_line_id);
+        }
+    }
+}
+
 function onPhaseTokenClick(token_id) {
     var zone_parent_id = bga.getElement( {id: token_id}, 'parent');
     var zone_parent_name = bga.getElement({id: zone_parent_id}, 'name');
@@ -358,7 +392,7 @@ function onClickZone(zone_id) {
                     // cas où une card de l'evolution line ou du cimetière a été sélectionnée avant
                     // premier cas où la carte est jouée sur son propre board
                     if (zone_id == active_board_id) {
-                        bga.log('enroll creature à coder!');
+                        this.enrollCreature(selected_card_id);
                     // deuxième cas du virus joué chez l'autre    
                     } else if ( (zone_id !== active_board_id) && (bga.hasTag(zone_id, 'BOARD')) ) {
                         if ((bga.hasTag(selected_card_id, 'SPECIAL_EFFECT')) && (bga.getElement({id: selected_card_id}, 'c_specialEffect') === 'virus')) {
