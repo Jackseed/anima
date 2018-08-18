@@ -451,4 +451,39 @@ function onClickZone(zone_id) {
 }
 
 
+function scry(scry_value){
+    
+    var cards_on_top_ids = [];
+    var deck_id = bga.getElement({name: 'Deck'});
+    var deck_cards = bga.getElementsArray( {parent: deck_id} );
+    
+    for (var i = 0; i === parseInt(scry_value); i++) {
+        var card_on_top_id = deck_cards[parseInt(deck_cards.length) - parseInt(i)];
+        cards_ids.push(cards_on_top_id);
+    }
+        
+    var expand_id = bga.getElement( {name: 'EXPAND_ZONE'} );
+    var props = [];
+                props[expand_id] = {
+                    x: 250, 
+                    y: 130, 
+                    width:700, 
+                    height:500, 
+                    visible: 'player'+bga.getActivePlayerColor(), 
+                    howToArrange: 'spreaded', 
+                    inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
+                };
+    bga.setProperties(props);
+    
+    if (deck_cards.length === parseInt(0)) {
+        bga.log('There is no more card in the deck.');
+    } else {
+        bga.moveTo(cards_on_top_ids, expand_id);
+    }
+    
+    return;
+}
+
+
+
 
