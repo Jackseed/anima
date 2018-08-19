@@ -53,28 +53,13 @@ function postSetup() {
 }
 
 function tokenToEnergyPhaseZone() {
-    var tokenId = bga.getElement( {name: "Phase_token"});
-    var energyPhaseZone = bga.getElement( {name: "Energy_phase_zone"});
+  var tokenId = bga.getElement( {name: "Phase_token"});
+  var energyPhaseZone = bga.getElement( {name: "Energy_phase_zone"});
+  var test_card_energy_cost = bga.getElement ({name: "Test_card"}, 'c_energyCost');
   
-    bga.moveTo(tokenId, energyPhaseZone);
-    
-    var active_player_board_id = bga.getElement({tag: 'BOARD_' + this.getExplicitActiveColor()});
-    var active_energy_pool_id = null;
-    if (bga.getActivePlayerColor() == 'ff0000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_RED'});
-    if (bga.getActivePlayerColor() == '008000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_GREEN'});
-    if (bga.getActivePlayerColor() == '0000ff') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_BLUE'});
-    if (bga.getActivePlayerColor() == 'ffa500') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
-    
-    var board_energy_productions = bga.getElementsArray({parent: active_player_board_id}, 'c_energyProduction');
-    var sum_energy_production = board_energy_productions.reduce(add, 0);
-    function add(a, b) {
-    return parseInt(a) + parseInt(b);
-    }
-    var props = [];
-    props[active_energy_pool_id] = {value: sum_energy_production};
-    bga.displayScoring(active_energy_pool_id, bga.getActivePlayerColor(), sum_energy_production);
-    bga.pause(1000);
-    bga.setProperties(props);
+  bga.moveTo(tokenId, energyPhaseZone);
+  bga.log(this.getActivePlayerEnergyPool());
+  bga.log(test_card_energy_cost);
 }
 
 function checkEndOfGame() {
@@ -146,8 +131,6 @@ function killCreature(card_id) {
     props[active_food_pool_id] = {value: new_food_pool};
     
     bga.moveTo(card_id, dest_zone_id);
-    bga.displayScoring(active_food_pool_id, bga.getActivePlayerColor(), card_food_production);
-    bga.pause(1000);
     bga.setProperties(props);
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
@@ -198,7 +181,6 @@ function onPhaseTokenClick(token_id) {
 
   switch (zone_parent_name) {
     case 'Energy_phase_zone':
-    this.checkEndOfGame();
     bga.moveTo(token_id, buying_phase_zone_id);
     bga.log("You are entering Enrolling phase, be wise !");
     break;
@@ -211,27 +193,11 @@ function onPhaseTokenClick(token_id) {
     case 'Killing_phase_zone':
     var food_pool = this.getActivePlayerFoodPool();
     var sum_food_cost = this.getActivePlayerFoodCost();
-    
+
     if (food_pool > sum_food_cost){
-        bga.moveTo(token_id, end_of_turn_phase_zone_id);
-        
-        var active_food_pool_id = null;
-        if (bga.getActivePlayerColor() == 'ff0000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_RED'});
-        if (bga.getActivePlayerColor() == '008000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_GREEN'});
-        if (bga.getActivePlayerColor() == '0000ff') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_BLUE'});
-        if (bga.getActivePlayerColor() == 'ffa500') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_YELLOW'});
-        var active_energy_pool_id = null;
-        if (bga.getActivePlayerColor() == 'ff0000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_RED'});
-        if (bga.getActivePlayerColor() == '008000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_GREEN'});
-        if (bga.getActivePlayerColor() == '0000ff') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_BLUE'});
-        if (bga.getActivePlayerColor() == 'ffa500') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
-        var props = [];
-        props[active_food_pool_id] = {value: 0};
-        props[active_energy_pool_id] = {value: 0};
-        bga.setProperties(props);
-    
-        bga.nextPlayer();
-        bga.nextState('done');
+       bga.moveTo(token_id, end_of_turn_phase_zone_id);
+       bga.nextPlayer();
+       bga.nextState('done');
     } else {
         bga.cancel( _('You do not have enough food to feed all your creatures.'))
     }
