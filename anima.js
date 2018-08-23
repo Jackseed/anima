@@ -59,12 +59,7 @@ function tokenToEnergyPhaseZone() {
     bga.moveTo(tokenId, energyPhaseZone);
     
     var active_player_board_id = bga.getElement({tag: 'BOARD_' + this.getExplicitActiveColor()});
-    var active_energy_pool_id = null;
-    if (bga.getActivePlayerColor() == 'ff0000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_RED'});
-    if (bga.getActivePlayerColor() == '008000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_GREEN'});
-    if (bga.getActivePlayerColor() == '0000ff') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_BLUE'});
-    if (bga.getActivePlayerColor() == 'ffa500') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
-    
+    var active_energy_pool_id = this.getActivePlayerEnergyPoolId();
     var board_energy_productions = bga.getElementsArray({parent: active_player_board_id}, 'c_energyProduction');
     var sum_energy_production = board_energy_productions.reduce(add, 0);
     function add(a, b) {
@@ -73,12 +68,11 @@ function tokenToEnergyPhaseZone() {
     var props = [];
     props[active_energy_pool_id] = {value: sum_energy_production};
     bga.displayScoring(active_energy_pool_id, bga.getActivePlayerColor(), sum_energy_production);
-    bga.pause(1000);
     bga.setProperties(props);
 }
 
 function checkEndOfGame() {
-    var isGameEnd = (this.getActivePlayerEnergyPool() >= 25);
+    var isGameEnd = (bga.getElement( {id: this.getActivePlayerEnergyPoolId()}, 'value') >= 25);
 
     if (!isGameEnd) {
     bga.nextState('done');
@@ -88,20 +82,26 @@ function checkEndOfGame() {
     }
 }
 
-function getActivePlayerEnergyPool() {
-    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement( {tag: 'ENERGY_POOL_RED'}, 'value');
-    if (bga.getActivePlayerColor() == '008000') return bga.getElement( {tag: 'ENERGY_POOL_GREEN'}, 'value');
-    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement( {tag: 'ENERGY_POOL_BLUE'}, 'value');
-    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {tag: 'ENERGY_POOL_YELLOW'},'value');
+function setValueCounter(counter_id, value) {
+    var props = [];
+    props[counter_id] = {value: value};
+    bga.setProperties(props);
+}
+
+function getActivePlayerEnergyPoolId() {
+    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement({tag: 'ENERGY_POOL_RED'});
+    if (bga.getActivePlayerColor() == '008000') return bga.getElement({tag: 'ENERGY_POOL_GREEN'});
+    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement({tag: 'ENERGY_POOL_BLUE'});
+    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
     return null;
 }
 
-function getActivePlayerFoodPool() {
-    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement( {tag: 'FOOD_POOL_RED'}, 'value');
-    if (bga.getActivePlayerColor() == '008000') return bga.getElement( {tag: 'FOOD_POOL_GREEN'}, 'value');
-    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement( {tag: 'FOOD_POOL_BLUE'}, 'value');
-    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {tag: 'FOOD_POOL_YELLOW'},'value');
-    return null;
+function getActivePlayerFoodPoolId() {
+    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement( {tag: 'FOOD_POOL_RED'});
+    if (bga.getActivePlayerColor() == '008000') return bga.getElement( {tag: 'FOOD_POOL_GREEN'});
+    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement( {tag: 'FOOD_POOL_BLUE'});
+    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {tag: 'FOOD_POOL_YELLOW'});
+    return null; 
 }
 
 function getExplicitActiveColor() {
@@ -116,10 +116,11 @@ function getActivePlayerFoodCost() {
     var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_food_costs = bga.getElementsArray({parent: active_board_id}, 'c_foodCost');
     var sum_food_cost = board_food_costs.reduce(add, 0);
-
+    var sum_hibernation_value = hibernation();
     function add(a, b) {
     return parseInt(a) + parseInt(b);
     }
+    sum_food_cost -= sum_hibernation_value;
     return sum_food_cost;
 }
 
@@ -134,38 +135,28 @@ function getSelectedCard() {
 
 function killCreature(card_id) {
     var dest_zone_id = bga.getElement({tag: 'GRAVEYARD_' + this.getExplicitActiveColor()});
-    var active_food_pool_id = null;
-    if (bga.getActivePlayerColor() == 'ff0000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_RED'});
-    if (bga.getActivePlayerColor() == '008000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_GREEN'});
-    if (bga.getActivePlayerColor() == '0000ff') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_BLUE'});
-    if (bga.getActivePlayerColor() == 'ffa500') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_YELLOW'});
+    var active_food_pool_id = this.getActivePlayerFoodPoolId();
     var card_food_production = bga.getElement({id: card_id}, 'c_foodProduction');
-    var food_pool = getActivePlayerFoodPool();
+    var food_pool = bga.getElement({id: active_food_pool_id}, 'value');
     var props = [];
     var new_food_pool = parseInt(food_pool) + parseInt(card_food_production);
     props[active_food_pool_id] = {value: new_food_pool};
     
     bga.moveTo(card_id, dest_zone_id);
-    bga.displayScoring(active_food_pool_id, bga.getActivePlayerColor(), card_food_production);
-    bga.pause(1000);
     bga.setProperties(props);
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
 
 function enrollCreature(card_id) {
     var dest_zone_id = bga.getElement({tag: 'BOARD_' + this.getExplicitActiveColor()});
-    var active_energy_pool_id = null;
-    if (bga.getActivePlayerColor() == 'ff0000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_RED'});
-    if (bga.getActivePlayerColor() == '008000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_GREEN'});
-    if (bga.getActivePlayerColor() == '0000ff') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_BLUE'});
-    if (bga.getActivePlayerColor() == 'ffa500') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
+    var active_energy_pool_id = this.getActivePlayerEnergyPoolId();
     var card_energy_cost = bga.getElement({id: card_id}, 'c_energyCost');
-    var energy_pool = getActivePlayerEnergyPool();
+    var energy_pool = bga.getElement({id: active_energy_pool_id}, 'value');
     
     if (parseInt(energy_pool) < parseInt(card_energy_cost)) {
         bga.cancel(_('You do not have enough energy for this.'));
     } else {
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    bga.removeStyle(bga.getElements({tag: 'sbstyle_selected'}), 'selected' );
     var props = [];
     var new_energy_pool = parseInt(energy_pool) - parseInt(card_energy_cost);
     props[active_energy_pool_id] = {value: new_energy_pool};
@@ -184,6 +175,11 @@ function enrollCreature(card_id) {
         bga.moveTo(card_on_top_id, evolution_line_id);
         }
     }
+    // check s'il y a un scry 
+    if (bga.hasTag(card_id, 'SCRY')) {
+        bga.pause(1500);
+        this.scry(bga.getElement({id: card_id}, "c_scryValue"));
+    }
 }
 
 function onPhaseTokenClick(token_id) {
@@ -198,7 +194,6 @@ function onPhaseTokenClick(token_id) {
 
   switch (zone_parent_name) {
     case 'Energy_phase_zone':
-    this.checkEndOfGame();
     bga.moveTo(token_id, buying_phase_zone_id);
     bga.log("You are entering Enrolling phase, be wise !");
     break;
@@ -209,29 +204,15 @@ function onPhaseTokenClick(token_id) {
     break;
     
     case 'Killing_phase_zone':
-    var food_pool = this.getActivePlayerFoodPool();
+    var food_pool = bga.getElement({id: this.getActivePlayerFoodPoolId()}, 'value');
     var sum_food_cost = this.getActivePlayerFoodCost();
-    
-    if (food_pool > sum_food_cost){
-        bga.moveTo(token_id, end_of_turn_phase_zone_id);
-        
-        var active_food_pool_id = null;
-        if (bga.getActivePlayerColor() == 'ff0000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_RED'});
-        if (bga.getActivePlayerColor() == '008000') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_GREEN'});
-        if (bga.getActivePlayerColor() == '0000ff') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_BLUE'});
-        if (bga.getActivePlayerColor() == 'ffa500') active_food_pool_id = bga.getElement({tag: 'FOOD_POOL_YELLOW'});
-        var active_energy_pool_id = null;
-        if (bga.getActivePlayerColor() == 'ff0000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_RED'});
-        if (bga.getActivePlayerColor() == '008000') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_GREEN'});
-        if (bga.getActivePlayerColor() == '0000ff') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_BLUE'});
-        if (bga.getActivePlayerColor() == 'ffa500') active_energy_pool_id = bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
-        var props = [];
-        props[active_food_pool_id] = {value: 0};
-        props[active_energy_pool_id] = {value: 0};
-        bga.setProperties(props);
-    
-        bga.nextPlayer();
-        bga.nextState('done');
+
+    if (food_pool >= sum_food_cost){
+       this.setValueCounter(this.getActivePlayerFoodPoolId(),0);
+       this.setValueCounter(this.getActivePlayerEnergyPoolId(),0);
+       bga.moveTo(token_id, end_of_turn_phase_zone_id);
+       bga.nextPlayer();
+       bga.nextState('done');
     } else {
         bga.cancel( _('You do not have enough food to feed all your creatures.'))
     }
@@ -271,6 +252,8 @@ function onClickCard( card_id, selection_ids ) {
     // l'ordre = esprit, eau,...
     var selected_card_order = null;
     if (selected_card_id !== null) selected_card_order = bga.getElement( {id: selected_card_id}, "c_order");
+    var deck_id = bga.getElement({tag: 'DECK'});
+    var expand_zone_id = bga.getElement({tag: 'EXPAND_ZONE'});
     
     // Check play action
     bga.checkAction('selectCard');
@@ -308,9 +291,35 @@ function onClickCard( card_id, selection_ids ) {
             bga.addStyle( card_id, 'selected' );      
         }
     }
+    // Cas où la carte est dans le deck
     if (bga.hasTag(parent_id, 'DECK')) {
+        if (selected_card_id === null) {
             bga.cancel( _("You cannot do that (click on deck)"));
+        // cas du click deck depuis une expand zone du deck (scry)    
+        } else if (bga.hasTag(bga.getElement ( {id: selected_card_id}, 'parent'),"EXPAND_ZONE")) {
+            bga.flip(selected_card_id);                            
+            bga.moveTo(selected_card_id, deck_id);
+            bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+            // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
+            var expand_cards = bga.getElementsArray({parent: expand_zone_id});
+            if (expand_cards.length === 0) {
+                var props = [];
+                props[expand_zone_id] = {
+                  x: 208, 
+                  y: 820, 
+                  width:340, 
+                  height:120, 
+                  visible: 'everyone', 
+                  howToArrange: 'stacked',
+                  inlineStyle: 'background-color: transparent'
+                };
+                bga.setProperties( props );
+            }
+        } else {
+            bga.cancel("You cannot put this card on the deck");
+        }
     }
+    
     // Cas où la carte est dans le cimietière (visible ou non)
     if (bga.hasTag(parent_id, 'GRAVE')) {
       // cas où le cimetière n'est pas visible
@@ -373,7 +382,6 @@ function onClickCard( card_id, selection_ids ) {
             bga.addStyle( card_id, 'selected' );
         } else {
         // sinon referme le cimetière en mode invisible
-
             // Collapse collected cards
             var cards_ids = bga.getElementsArray( {parent: card_parent.id} );
             var collapsed_id = bga.getElement( {tag: 'GRAVEYARD_' + clickedColor} );
@@ -398,8 +406,11 @@ function onClickCard( card_id, selection_ids ) {
           }
       }
     }
-    
-
+    // cas où la carte est sélectionné à partir de l'expand zone (zone de vision des cartes du deck, type scry)
+    if (bga.hasTag(parent_id, 'EXPAND_ZONE')) {
+        bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+        bga.addStyle( card_id, 'selected' );
+    }
 }
 
 function onClickZone(zone_id) {
@@ -409,10 +420,13 @@ function onClickZone(zone_id) {
     var active_phase_zone_name = bga.getElement ( {id: phase_token_zone}, 'name');
     var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
     var active_graveyard_id = bga.getElement({tag: 'GRAVEYARD_' + this.getExplicitActiveColor()});
+    var deck_id = bga.getElement({tag: 'DECK'});
+    var expand_zone_id = bga.getElement({tag: 'EXPAND_ZONE'});
 
     if (selected_card_id === null) {
         bga.cancel('Please select a card.');
     } else {
+            var selected_card_id_zone = bga.getElement ( {id: selected_card_id}, 'parent');
             switch (active_phase_zone_name) {
                 case 'Energy_phase_zone':
                 case 'Feeding_phase_zone':
@@ -423,20 +437,50 @@ function onClickZone(zone_id) {
                         }
                     break;
                 case 'Buying_phase_zone':
-                    // cas où une card de l'evolution line ou du cimetière a été sélectionnée avant
-                    // premier cas où la carte est jouée sur son propre board
-                    if (zone_id == active_board_id) {
-                        this.enrollCreature(selected_card_id);
-                    // deuxième cas du virus joué chez l'autre    
-                    } else if ( (zone_id !== active_board_id) && (bga.hasTag(zone_id, 'BOARD')) ) {
-                        if ((bga.hasTag(selected_card_id, 'SPECIAL_EFFECT')) && (bga.getElement({id: selected_card_id}, 'c_specialEffect') === 'virus')) {
-                            bga.log('enroll creature à coder! (virus)');   
+                    // cas où une card de l'evolution line a été sélectionnée au préalable
+                    if (bga.hasTag(selected_card_id_zone,"EVOLUTION_LINE")) {
+                        // premier cas où la carte est jouée sur son propre board
+                        if (zone_id == active_board_id) {
+                            this.enrollCreature(selected_card_id);
+                        // deuxième cas du virus joué chez l'autre    
+                        } else if ( (zone_id !== active_board_id) && (bga.hasTag(zone_id, 'BOARD')) ) {
+                            if ((bga.hasTag(selected_card_id, 'SPECIAL_EFFECT')) && (bga.getElement({id: selected_card_id}, 'c_specialEffect') === 'virus')) {
+                                bga.log('enroll creature à coder! (virus)');   
+                            } else {
+                                bga.cancel( _("This creature is not a virus.")); 
+                            }
+                        // cas où le joueur ne choisit pas un board pour sa carte sélectionnée
                         } else {
-                            bga.cancel( _("This creature is not a virus.")); 
+                            bga.cancel('Please select a board to play this card');
                         }
-                    // cas où le joueur ne choisit pas un board pour sa carte sélectionnée
+                    // cas où une carte de la zone de vision du deck a été sélectionnée au préalable
+                    } else if (bga.hasTag(selected_card_id_zone,"EXPAND_ZONE")) {
+                        //si le deck est clické ensuite, on la retourne et la met au dessus du deck
+                        if (zone_id == deck_id) {
+                            bga.flip(selected_card_id);                            
+                            bga.moveTo(selected_card_id, deck_id);
+                            bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+                            // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
+                            var expand_cards = bga.getElementsArray({parent: expand_zone_id});
+                            if (expand_cards.length === 0) {
+                                var props = [];
+                                props[expand_zone_id] = {
+                                  x: 208, 
+                                  y: 820, 
+                                  width:340, 
+                                  height:120, 
+                                  visible: 'everyone', 
+                                  howToArrange: 'stacked',
+                                  inlineStyle: 'background-color: transparent'
+                                };
+                                bga.setProperties( props );
+                            }
+                        } else {
+                            bga.cancel("Please select the deck.")
+                        }
+                    // autres cas non encore possible
                     } else {
-                        bga.cancel( _("Select a board to enroll this creature."));
+                        bga.cancel('You cannot do that.')
                     }
                     break;
                 case 'Killing_phase_zone':
@@ -450,5 +494,81 @@ function onClickZone(zone_id) {
     }
 }
 
+
+function scry(c_scryValue){
+    var cards_on_top_ids = [];
+    var deck_id = bga.getElement({name: 'Deck'});
+    var deck_cards = bga.getElementsArray( {parent: deck_id} );
+    // prévoit le cas où le deck est vide
+    if (deck_cards.length === parseInt(0)) {
+        bga.log('There is no more card in the deck.');
+    // prévoit le cas où il y a moins de cartes au-dessus du deck que de scryValue
+    } else if ( deck_cards.length < c_scryValue ) {
+            for (var i = 0; i < deck_cards.length; i++) {
+            var top_i_card_id = deck_cards[deck_cards.length - 1 - i];
+            cards_on_top_ids.push(top_i_card_id);
+            }
+            var expand_id = bga.getElement( {name: 'Expand_zone'} );
+            var props = [];
+                        props[expand_id] = {
+                            x: 50, 
+                            y: 100, 
+                            width:700, 
+                            height:500, 
+                            visible: 'player'+bga.getActivePlayerColor(), 
+                            howToArrange: 'spreaded', 
+                            inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
+                        };
+            bga.setProperties(props);
+            bga.moveTo(cards_on_top_ids, expand_id);
+            bga.pause( 1500 );
+            for (var j = 0; j < cards_on_top_ids.length; j++) {
+                            bga.flip( cards_on_top_ids[j] );
+            }
+    // cas "normaux"
+    } else {
+        // sélectionne les X cartes au dessus du deck, X = scryValue
+        for (var i = 1; i < parseInt(c_scryValue) + 1; i++) {
+        var top_i_card_id = deck_cards[deck_cards.length - i];
+        cards_on_top_ids.push(top_i_card_id);
+        }
+        var expand_id = bga.getElement( {name: 'Expand_zone'} );
+        var props = [];
+                    props[expand_id] = {
+                        x: 50, 
+                        y: 100, 
+                        width:700, 
+                        height:500, 
+                        visible: 'player'+bga.getActivePlayerColor(), 
+                        howToArrange: 'spreaded', 
+                        inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
+                    };
+        bga.setProperties(props);
+        bga.moveTo(cards_on_top_ids, expand_id);
+        bga.pause( 1500 );
+        for (var j = 0; j < cards_on_top_ids.length; j++) {
+                        bga.flip( cards_on_top_ids[j] );
+        }
+    }
+}
+
+function hibernation() {
+    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var board_hibernation_values = bga.getElementsArray({parent: active_board_id}, 'c_hibernationValue');
+    var sum_hibernation_value = board_hibernation_values.reduce(add, 0);
+    function add(a, b) {
+    return parseInt(a) + parseInt(b);
+    }
+    if (sum_hibernation_value > 0) {
+        for (var i = 0; i < board_cards_ids.length; i++) {
+            var props = [];
+            // réduit la valeur d'hibernation à 0 une fois son effet utilisé
+            props[board_cards_ids[i]] = {c_hibernationValue: 0};
+            bga.setProperties(props);
+        }
+    }
+    return sum_hibernation_value;
+}
 
 
