@@ -53,7 +53,6 @@ function postSetup() {
 }
 
 function tokenToEnergyPhaseZone() {
-
     this.growth();
     
     var tokenId = bga.getElement( {name: "Phase_token"});
@@ -87,18 +86,18 @@ function setCounterValue(counter_id, value) {
 }
 
 function getActivePlayerEnergyPoolId() {
-    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement({tag: 'ENERGY_POOL_RED'});
-    if (bga.getActivePlayerColor() == '008000') return bga.getElement({tag: 'ENERGY_POOL_GREEN'});
-    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement({tag: 'ENERGY_POOL_BLUE'});
-    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement({tag: 'ENERGY_POOL_YELLOW'});
+    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement({name: 'ENERGY_POOL_RED'});
+    if (bga.getActivePlayerColor() == '008000') return bga.getElement({name: 'ENERGY_POOL_GREEN'});
+    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement({name: 'ENERGY_POOL_BLUE'});
+    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement({name: 'ENERGY_POOL_YELLOW'});
     return null;
 }
 
 function getActivePlayerFoodPoolId() {
-    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement( {tag: 'FOOD_POOL_RED'});
-    if (bga.getActivePlayerColor() == '008000') return bga.getElement( {tag: 'FOOD_POOL_GREEN'});
-    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement( {tag: 'FOOD_POOL_BLUE'});
-    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {tag: 'FOOD_POOL_YELLOW'});
+    if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement( {name: 'FOOD_POOL_RED'});
+    if (bga.getActivePlayerColor() == '008000') return bga.getElement( {name: 'FOOD_POOL_GREEN'});
+    if (bga.getActivePlayerColor() == '0000ff') return bga.getElement( {name: 'FOOD_POOL_BLUE'});
+    if (bga.getActivePlayerColor() == 'ffa500') return bga.getElement( {name: 'FOOD_POOL_YELLOW'});
     return null; 
 }
 
@@ -111,7 +110,7 @@ function getExplicitActiveColor() {
 }
 
 function getActivePlayerFoodCost() {
-    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_food_costs = bga.getElementsArray({parent: active_board_id}, 'c_foodCost');
     var sum_food_cost = board_food_costs.reduce(add, 0);
     var sum_hibernation_value = hibernation();
@@ -125,8 +124,8 @@ function getActivePlayerFoodCost() {
 }
 
 function getActivePlayerEnergyProduction() {
-    var active_player_board_id = bga.getElement({tag: 'BOARD_' + this.getExplicitActiveColor()});
-    var board_energy_productions = bga.getElementsArray({parent: active_player_board_id}, 'c_energyProduction');
+    var active_board_id = bga.getElement({name: 'BOARD_' + this.getExplicitActiveColor()});
+    var board_energy_productions = bga.getElementsArray({parent: active_board_id}, 'c_energyProduction');
     var active_player_energy_production = board_energy_productions.reduce(add, 0);
     function add(a, b) {
     return parseInt(a) + parseInt(b);
@@ -139,6 +138,15 @@ function getSelectedCard() {
     var card_id = null;
     if (selected_cards.length > 0) {
         card_id = selected_cards[0];
+    }
+    return card_id;
+}
+
+function getClickableRoundedCard() {
+    var clickable_rounded_cards = bga.getElementsArray( {tag: 'sbstyle_CLICKABLE_ROUNDED' } );
+    var card_id = null;
+    if (clickable_rounded_cards.length > 0) {
+        card_id = clickable_rounded_cards[0];
     }
     return card_id;
 }
@@ -162,28 +170,30 @@ function killCreature(card_id) {
 }
 
 function enrollCreature(card_id) {
-    var dest_zone_id = bga.getElement({tag: 'BOARD_' + this.getExplicitActiveColor()});
+
+    var dest_zone_id = bga.getElement({name: 'BOARD_' + this.getExplicitActiveColor()});
     var active_energy_pool_id = this.getActivePlayerEnergyPoolId();
     var card_energy_cost = bga.getElement({id: card_id}, 'c_energyCost');
     var energy_pool = bga.getElement({id: active_energy_pool_id}, 'value');
-    
+
     if (parseInt(energy_pool) < parseInt(card_energy_cost)) {
         bga.cancel(_('You do not have enough energy for this.'));
     } else {
+
         // réduit l'énergie pool du coût d'énergie de la carte achetée
         bga.removeStyle(bga.getElements({tag: 'sbstyle_selected'}), 'selected' );
+        
         var props = [];
         var new_energy_pool = parseInt(energy_pool) - parseInt(card_energy_cost);
         props[active_energy_pool_id] = {value: new_energy_pool};
         bga.setProperties(props);
         // déplace la carte sur le board sélectionné
         bga.moveTo(card_id, dest_zone_id);
-        bga.pause(1500);
         // pioche une nouvelle
         this.draw();
         // check si la carte jouée a scry 
         if (bga.hasTag(card_id, 'SCRY')) {
-            bga.pause(1500);
+            bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
             this.scry(bga.getElement({id: card_id}, "c_scryValue"));
         }
         // check si la carte jouée est volante
@@ -195,10 +205,10 @@ function enrollCreature(card_id) {
 
 function draw() {
     // remplace la carte achetée par la carte du dessus du deck
-    var deck_id = bga.getElement({name: 'Deck'});
+    var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
     var card_on_top_id = deck_cards[deck_cards.length - 1];
-    var evolution_line_id = bga.getElement({name: 'Evolution_line'});
+    var evolution_line_id = bga.getElement({name: 'EVOLUTION_LINE'});
         // cas où le deck est vide
         if (deck_cards.length === parseInt(0)) {
             bga.log('There is no more card in the deck.');
@@ -207,12 +217,15 @@ function draw() {
         }
 }
 
-function expand(parent_id) {
-    var parent_zone = bga.getElement( {id: parent_id}, ['id','name'] );
-    var cards_ids = bga.getElementsArray( {parent: parent_zone.id} );
+function expand(zone_id_to_expand, cards_ids) {
+    var parent_zone = bga.getElement( {id: zone_id_to_expand}, ['id','name'] );
     var expand_id = bga.getElement( {name: 'Expand_zone' } );
     var tag_name = bga.getElement({id : expand_id}, 'tags');
     var tag_name_string = tag_name.toString();
+
+    if (cards_ids === undefined ) {
+        cards_ids = bga.getElementsArray( {parent: parent_zone.id} );
+    }
     
     // supprime le tag de l'expand pour sa prochaine utilisation
     bga.removeTag(expand_id, tag_name_string);
@@ -231,7 +244,6 @@ function expand(parent_id) {
         inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
     };
     bga.setProperties( props );
-    
     bga.moveTo( cards_ids, expand_id );    
 }
 
@@ -317,14 +329,15 @@ function onClickCard( card_id, selection_ids ) {
     var active_phase_zone_name = bga.getElement ( {id: phase_token_zone}, 'name');
     var explicitActiveColor = this.getExplicitActiveColor();
     var selected_card_id = this.getSelectedCard();
-    var deck_id = bga.getElement({tag: 'DECK'});
+    var clickable_rounded_card_id = this.getClickableRoundedCard();
+    var deck_id = bga.getElement({name: 'DECK'});
     var expand_zone_id = bga.getElement({name: 'Expand_zone'});
     
     // Check play action
     bga.checkAction('selectCard');
     
     // check if the card clicked is on a board
-    if (bga.hasTag(parent_id, 'BOARD')) {
+    if (parent_id === bga.getElement({name: 'BOARD'})) {
       if (!bga.hasTag(parent_id, 'BOARD_'+ explicitActiveColor )) {
         bga.cancel( _('You have to chose a card you control') );      
       } else {
@@ -348,7 +361,7 @@ function onClickCard( card_id, selection_ids ) {
               }
         }
     }
-    if (bga.hasTag(parent_id, 'EVOLUTION_LINE')) {
+    if (parent_id === bga.getElement({name: 'EVOLUTION_LINE'})) {
         if (active_phase_zone_name === 'Buying_phase_zone') {
             bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
             bga.addStyle( card_id, 'selected' );            
@@ -357,46 +370,44 @@ function onClickCard( card_id, selection_ids ) {
         }
     }
     // Cas où la carte est dans le deck
-    if (bga.hasTag(parent_id, 'DECK')) {
+    if ( parent_id === bga.getElement({name: 'DECK'})) {
         if (selected_card_id === null) {
             
             bga.cancel( _("You cannot do that (click on deck)"));
         
         // cas où une carte a été pré-sélectionnée
-        // SCRY: vérifie que la carte pré-sélectionnée vient de la zone 'expand'
-        } else if (bga.getElement ( {id: selected_card_id}, 'parent') === expand_zone_id) {
-            
-            // si c'est le cas, remet la carte pré-sélectionnée au dessus du deck
-            bga.flip(selected_card_id);                            
-            bga.moveTo(selected_card_id, deck_id);
-            bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-            
-            // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
-            var expand_cards = bga.getElementsArray({parent: expand_zone_id});
-            if (expand_cards.length === 0) {
-                this.collapse();
-            }
-        } else {
+        } else 
+             // vérifie que la carte pré-sélectionnée vient de la zone 'expand'
+            if (bga.getElement ( {id: selected_card_id}, 'parent') === expand_zone_id) {
+                // vérifie qu'un scry est en cours
+                if (bga.hasTag(clickable_rounded_card_id, "SCRY")) {
+                    // si c'est le cas, remet la carte pré-sélectionnée au dessus du deck
+                    bga.flip(selected_card_id);                            
+                    bga.moveTo(selected_card_id, deck_id);
+                    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+                    
+                    // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
+                    var expand_cards = bga.getElementsArray({parent: expand_zone_id});
+                    if (expand_cards.length === 0) {
+                        bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+                        this.collapse();
+                    }
+                }
+            } else {
             bga.cancel("You cannot put this card on the deck");
         }
     }
     
     // Cas où la carte est au cimetière ou retirée de la partie
-    if (bga.hasTag(parent_id, 'GRAVE') || bga.hasTag(parent_id, 'REMOVAL') ) {
-        
+    if ( (parent_id === bga.getElement({name: 'GRAVE'})) || (parent_id === bga.getElement({name: 'REMOVAL'})) ) {
         // si aucune carte n'a été pré-sélectionnée, montre le cimetière / les cartes retirées de la partie
         if (selected_card_id === null) {
-            
             this.expand(parent_id);
-            
         } else {
-            
             // si une carte a été pré-sélectionnée et qu'il s'agit du cimetière actif
             // la déplace au cimetière si phase 3
             if ((bga.hasTag(parent_id, 'GRAVEYARD_'+explicitActiveColor)) && (active_phase_zone_name === 'Killing_phase_zone')) {
-              
               this.killCreature(selected_card_id);
-            
                 
             } else {
             // ne peut pas être fait sinon
@@ -405,36 +416,30 @@ function onClickCard( card_id, selection_ids ) {
         }
     }
     
-    // Cas où la carte sélectionnée se trouve dans la zone Expand
-    if ( parent_id === expand_zone_id) {
-            this.collapse();
-    }
-     
-    
-    
-    // cas où la carte est sélectionné à partir de l'expand zone (zone de vision des cartes du deck, type scry)
-    if (bga.hasTag(parent_id, 'EXPAND_ZONE')) {
-        var selected_card_id_zone = bga.getElement ( {id: selected_card_id}, 'parent');
-        if (selected_card_id === null) {
-            
-            // cas du Scry notamment
-            bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-            bga.addStyle( card_id, 'selected' );
-            
-        // cas de l'adipose (couche graisseuse), vérifie que la carte sélectionnée a cet effet et est au cimetière
-        } else if ( (bga.hasTag(selected_card_id, 'ADIPOSE')) && (bga.hasTag(selected_card_id_zone, 'GRAVEYARD_'+ explicitActiveColor)) ) {
-            
-            this.adipose(selected_card_id, card_id);
-            
-        } else {
-            
-            // cas du Scry ou la personne souhaite changer de carte
+    // cas où la carte est sélectionné à partir de l'expand zone
+    if (parent_id === expand_zone_id) {
+        // liste des zones qui nécessitent un collapse si les cartes présentent dans l'expand viennent de cette zone
+        var zones_to_collapse = ["GRAVEYARD_RED", "GRAVEYARD_GREEN", "REMOVAL_RED", "REMOVAL_GREEN"];
+        var expand_zone_parent = bga.getElement ( {id: expand_zone_id}, 'tags');
+        var expand_zone_parent_string = expand_zone_parent.toString();
+        // vérifie si le parent des cartes dans l'expand fait partie de la liste à collapse
+        for (i = 0; i < zones_to_collapse.length; i ++) {
+            if (zones_to_collapse[i] === expand_zone_parent_string) {
+                this.collapse();
+            }    
+        }
+        // cas où un pouvoir est en cours (SCRY)
+        if (clickable_rounded_card_id != null) {
             bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
             bga.addStyle( card_id, 'selected' );
         }
+            
+        // cas de l'adipose (couche graisseuse), vérifie que la carte sélectionnée a cet effet et est au cimetière
+        if ( (bga.hasTag(selected_card_id, 'ADIPOSE')) && (bga.hasTag(bga.getElement ( {id: selected_card_id}, 'parent'), 'GRAVEYARD_'+ explicitActiveColor)) ) {
+            
+            this.adipose(selected_card_id, card_id);
+        }
     }
-    
-    
 }
 
 function onClickZone(zone_id) {
@@ -442,11 +447,11 @@ function onClickZone(zone_id) {
     var phase_token_id = bga.getElement( {name: 'Phase_token'});
     var phase_token_zone = bga.getElement ( {id: phase_token_id}, 'parent');
     var active_phase_zone_name = bga.getElement ( {id: phase_token_zone}, 'name');
-    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_id = bga.getElement({name:'BOARD_'+ this.getExplicitActiveColor()});
     var active_graveyard_id = bga.getElement({name: 'GRAVEYARD_' + this.getExplicitActiveColor()});
-    var deck_id = bga.getElement({tag: 'DECK'});
-    var expand_zone_id = bga.getElement({tag: 'EXPAND_ZONE'});
-    var active_removal_zone_id = bga.getElement({tag: 'REMOVAL_ZONE_' + this.getExplicitActiveColor()});
+    var deck_id = bga.getElement({name: 'DECK'});
+    var expand_zone_id = bga.getElement({name: 'EXPAND_ZONE'});
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_ZONE_' + this.getExplicitActiveColor()});
 
     if (selected_card_id === null) {
         bga.cancel('Please select a card.');
@@ -463,13 +468,13 @@ function onClickZone(zone_id) {
                     break;
                 case 'Buying_phase_zone':
                     // cas où une card de l'evolution line a été sélectionnée au préalable
-                    if (bga.hasTag(selected_card_id_zone,"EVOLUTION_LINE")) {
+                    if (selected_card_id_zone === bga.getElement({name: 'EVOLUTION_LINE'})) {
                         // premier cas où la carte est jouée sur son propre board
                         if (zone_id == active_board_id) {
                             this.enrollCreature(selected_card_id);
                         // deuxième cas du virus joué chez l'autre    
-                        } else if ( (zone_id !== active_board_id) && (bga.hasTag(zone_id, 'BOARD')) ) {
-                            if ((bga.hasTag(selected_card_id, 'SPECIAL_EFFECT')) && (bga.getElement({id: selected_card_id}, 'c_specialEffect') === 'virus')) {
+                        } else if ( bga.hasTag(zone_id, 'BOARD') ) {
+                            if ((bga.hasTag(selected_card_id, 'SPECIAL_EFFECT')) && (bga.getElement({id: selected_card_id}, 'c_specialEffect') == 'virus')) {
                                 bga.log('enroll creature à coder! (virus)');   
                             } else {
                                 bga.cancel( _("This creature is not a virus.")); 
@@ -496,17 +501,7 @@ function onClickZone(zone_id) {
                             // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
                             var expand_cards = bga.getElementsArray({parent: expand_zone_id});
                             if (expand_cards.length === 0) {
-                                var props = [];
-                                props[expand_zone_id] = {
-                                  x: 208, 
-                                  y: 820, 
-                                  width:340, 
-                                  height:120, 
-                                  visible: 'everyone', 
-                                  howToArrange: 'stacked',
-                                  inlineStyle: 'background-color: transparent'
-                                };
-                                bga.setProperties( props );
+                                this.collapse();
                             }
                         } else {
                             bga.cancel("Please select the deck.")
@@ -530,64 +525,28 @@ function onClickZone(zone_id) {
 
 function scry(c_scryValue){
     var cards_on_top_ids = [];
-    var deck_id = bga.getElement({name: 'Deck'});
+    var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
     // prévoit le cas où le deck est vide
     if (deck_cards.length === parseInt(0)) {
-        bga.log('There is no more card in the deck.');
-    // prévoit le cas où il y a moins de cartes au-dessus du deck que de scryValue
-    } else if ( deck_cards.length < c_scryValue ) {
-            for (var i = 0; i < deck_cards.length; i++) {
-            var top_i_card_id = deck_cards[deck_cards.length - 1 - i];
-            cards_on_top_ids.push(top_i_card_id);
-            }
-            var expand_id = bga.getElement( {name: 'Expand_zone'} );
-            var props = [];
-                        props[expand_id] = {
-                            x: 50, 
-                            y: 100, 
-                            width:700, 
-                            height:500, 
-                            visible: 'player'+bga.getActivePlayerColor(), 
-                            howToArrange: 'spreaded', 
-                            inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
-                        };
-            bga.setProperties(props);
-            bga.moveTo(cards_on_top_ids, expand_id);
-            bga.pause( 1500 );
-            for (var j = 0; j < cards_on_top_ids.length; j++) {
-                            bga.flip( cards_on_top_ids[j] );
-            }
-    // cas "normaux"
-    } else {
-        // sélectionne les X cartes au dessus du deck, X = scryValue
-        for (var i = 1; i < parseInt(c_scryValue) + 1; i++) {
-        var top_i_card_id = deck_cards[deck_cards.length - i];
+        bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+        bga.log('Cannot scry, no more card in the deck.');
+    } else {    
+        var cards_to_show = Math.min(deck_cards.length, c_scryValue);
+        for (var i = 0; i < cards_to_show; i++) {
+        var top_i_card_id = deck_cards[deck_cards.length - i - 1];
         cards_on_top_ids.push(top_i_card_id);
         }
-        // sort l'expand zone et déplace les cartes du dessus du deck dessus, face visible
-        var expand_id = bga.getElement( {name: 'Expand_zone'} );
-        var props = [];
-                    props[expand_id] = {
-                        x: 50, 
-                        y: 100, 
-                        width:700, 
-                        height:500, 
-                        visible: 'player'+bga.getActivePlayerColor(), 
-                        howToArrange: 'spreaded', 
-                        inlineStyle: 'background-color: rgba(255, 255, 255, 0.8)'
-                    };
-        bga.setProperties(props);
-        bga.moveTo(cards_on_top_ids, expand_id);
+        this.expand(deck_id, cards_on_top_ids);
         bga.pause( 1500 );
         for (var j = 0; j < cards_on_top_ids.length; j++) {
-                        bga.flip( cards_on_top_ids[j] );
+            bga.flip( cards_on_top_ids[j] );
         }
     }
 }
 
 function hibernation() {
-    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
     var board_hibernation_values = bga.getElementsArray({parent: active_board_id}, 'c_hibernationValue');
     var sum_hibernation_value = board_hibernation_values.reduce(add, 0);
@@ -606,7 +565,7 @@ function hibernation() {
 }
 
 function adaptation() {
-    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
     // vérifie qu'il y a une carte avec adaptation et si c'est le cas remplace son foodCost par sa valeur d'adaptation
     board_cards_ids.forEach(function(card_id){
@@ -635,7 +594,6 @@ function adipose(adipose_card_id, targeted_card_id) {
     var targeted_card_id_food_production = parseInt(bga.getElement({id: targeted_card_id}, 'c_foodProduction'));
     var expand_zone_id = bga.getElement({name: 'Expand_zone'});
     var props = [];
-    
     // augmente la food_production de la carte ciblée
     targeted_card_id_food_production += parseInt(adipose_card_value);
     props[targeted_card_id] = {c_foodProduction: targeted_card_id_food_production};
@@ -644,7 +602,7 @@ function adipose(adipose_card_id, targeted_card_id) {
     // supprime la sélection de la carte adipose
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
     
-    bga.displayScoring(card_id, bga.getActivePlayerColor(), selected_card_adipose_value);
+    bga.displayScoring(targeted_card_id, bga.getActivePlayerColor(), adipose_card_value);
     
     // renvoie les cartes sur le board
     bga.moveTo(bga.getElementsArray({parent: expand_zone_id}), bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() }));
@@ -654,7 +612,7 @@ function adipose(adipose_card_id, targeted_card_id) {
 }
 
 function growth() {
-    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
 
     for (var i = 0; i < board_cards_ids.length; i++) {
@@ -678,10 +636,10 @@ function growth() {
 
 
 function checkFlying(card_id) {
-    var active_board_id = bga.getElement({tag: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
-    var deck_id = bga.getElement({tag: 'EVOLUTION_LINE'});
-    var deck_cards_ids = bga.getElementsArray({parent: deck_id});
+    var evolution_line_id = bga.getElement({name: 'EVOLUTION_LINE'});
+    var evolution_line_cards_ids = bga.getElementsArray({parent: evolution_line_id});
     var flying_counter = 0;
     
     for (var i = 0; (i < board_cards_ids.length) && (flying_counter < 2); i++) {
@@ -689,7 +647,7 @@ function checkFlying(card_id) {
             if (flying_counter > 0) {
                 bga.log('FLYING EFFECT: you can remove a card from the Evolution line');
                 bga.addStyle( card_id, 'REDSELECTED' );
-                bga.addStyle( deck_cards_ids, 'clickable' );
+                bga.addStyle( evolution_line_cards_ids, 'clickable' );
                 flying_counter++;
                 return true;
             } else {
