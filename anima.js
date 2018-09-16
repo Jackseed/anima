@@ -85,6 +85,12 @@ function setCounterValue(counter_id, value) {
     bga.setProperties(props);
 }
 
+function modifyFoodCost(card_id, value){
+    var props = [];
+    props[card_id] = {c_foodCost: value};
+    bga.setProperties(props);
+}
+
 function getActivePlayerEnergyPoolId() {
     if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement({name: 'ENERGY_POOL_RED'});
     if (bga.getActivePlayerColor() == '008000') return bga.getElement({name: 'ENERGY_POOL_GREEN'});
@@ -112,11 +118,15 @@ function getExplicitActiveColor() {
 function getActivePlayerFoodCost() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_food_costs = bga.getElementsArray({parent: active_board_id}, 'c_foodCost');
-    var sum_food_cost = board_food_costs.reduce(this.add, 0);
-    var sum_hibernation_value = hibernation();
-    
-    sum_food_cost -= sum_hibernation_value;
+    var sum_food_cost = board_food_costs.reduce(this.add, 0);    
+
+    if (isHibernation()){
+    var sum_hibernation_value = activateHibernation();
+    sum_food_cost -= sum_hibernation_value;    
+    }     
+
     this.checkAdaptation();
+    
     return sum_food_cost;
 }
 
@@ -560,7 +570,21 @@ function scrySelectedCard(selected_card_id){
     }
 }
 
-function hibernation() {
+function isHibernation(){
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var is_hibernation = false;
+
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'HIBERNATION')) {
+            is_hibernation = true;
+        }
+    });
+    return is_hibernation;
+    
+}
+
+function activateHibernation() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
     var board_hibernation_values = bga.getElementsArray({parent: active_board_id}, 'c_hibernationValue');
@@ -593,12 +617,6 @@ function activateAdaptation(card_id) {
     var adaptation_value = bga.getElement({id: card_id}, 'c_adaptationValue');
     this.modifyFoodCost(card_id, adaptation_value);
     bga.addTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'); 
-}
-
-function modifyFoodCost(card_id, value){
-    var props = [];
-    props[card_id] = {c_foodCost: value};
-    bga.setProperties(props);
 }
 
 
