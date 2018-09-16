@@ -116,7 +116,7 @@ function getActivePlayerFoodCost() {
     var sum_hibernation_value = hibernation();
     
     sum_food_cost -= sum_hibernation_value;
-    this.adaptation();
+    this.checkAdaptation();
     return sum_food_cost;
 }
 
@@ -427,7 +427,7 @@ function onClickCard( card_id, selection_ids ) {
         var expand_zone_parent = bga.getElement ( {id: expand_zone_id}, 'tags');
         var expand_zone_parent_string = expand_zone_parent.toString();
         // vérifie si le parent des cartes dans l'expand fait partie de la liste à collapse
-        for (i = 0; i < zones_to_collapse.length; i ++) {
+        for (var i = 0; i < zones_to_collapse.length; i ++) {
             if (zones_to_collapse[i] === expand_zone_parent_string) {
                 this.collapse();
             }    
@@ -566,19 +566,30 @@ function hibernation() {
     return sum_hibernation_value;
 }
 
-function adaptation() {
+function checkAdaptation() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
-    // vérifie qu'il y a une carte avec adaptation et si c'est le cas remplace son foodCost par sa valeur d'adaptation
+
     board_cards_ids.forEach(function(card_id){
-       if (bga.hasTag(card_id, 'ADAPTATION')) {
-            i_card_adaptation_value = bga.getElement({id: card_id}, 'c_adaptationValue');
-            var props = [];
-            props[card_id] = {c_foodCost: i_card_adaptation_value};
-            bga.setProperties(props);
-        } 
+        if (bga.hasTag(card_id, 'ADAPTATION') && (!bga.hasTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'))) {
+            this.activateAdaptation(card_id);
+        }
     });
 }
+
+function activateAdaptation(card_id) {
+    // adaptation: remplace le foodCost d'une carte par sa valeur d'adaptation
+    var adaptation_value = bga.getElement({id: card_id}, 'c_adaptationValue');
+    this.modifyFoodCost(card_id, adaptation_value);
+    bga.addTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'); 
+}
+
+function modifyFoodCost(card_id, value){
+    var props = [];
+    props[card_id] = {c_foodCost: value};
+    bga.setProperties(props);
+}
+
 
 function checkAdipose(card_id) {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
