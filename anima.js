@@ -112,24 +112,23 @@ function getExplicitActiveColor() {
 function getActivePlayerFoodCost() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_food_costs = bga.getElementsArray({parent: active_board_id}, 'c_foodCost');
-    var sum_food_cost = board_food_costs.reduce(add, 0);
+    var sum_food_cost = board_food_costs.reduce(this.add, 0);
     var sum_hibernation_value = hibernation();
-    function add(a, b) {
-    return parseInt(a) + parseInt(b);
-    }
     
     sum_food_cost -= sum_hibernation_value;
     this.adaptation();
     return sum_food_cost;
 }
 
+function add(a,b){
+    return parseInt(a) + parseInt(b);
+}
+
 function getActivePlayerEnergyProduction() {
     var active_board_id = bga.getElement({name: 'BOARD_' + this.getExplicitActiveColor()});
     var board_energy_productions = bga.getElementsArray({parent: active_board_id}, 'c_energyProduction');
-    var active_player_energy_production = board_energy_productions.reduce(add, 0);
-    function add(a, b) {
-    return parseInt(a) + parseInt(b);
-    }
+    var active_player_energy_production = board_energy_productions.reduce(this.add, 0);
+    
     return active_player_energy_production;
 }
 
@@ -194,7 +193,7 @@ function enrollCreature(card_id) {
         // check si la carte jouée a scry 
         if (bga.hasTag(card_id, 'SCRY')) {
             bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
-            this.scry(bga.getElement({id: card_id}, "c_scryValue"));
+            this.activateScry(bga.getElement({id: card_id}, "c_scryValue"));
         }
         // check si la carte jouée est volante
         if (bga.hasTag(card_id, 'FLYING')) {
@@ -222,6 +221,12 @@ function expand(zone_id_to_expand, cards_ids) {
     var expand_id = bga.getElement( {name: 'Expand_zone' } );
     var tag_name = bga.getElement({id : expand_id}, 'tags');
     var tag_name_string = tag_name.toString();
+    var expand_zone_how_to_arrange_parameter = bga.getElement({id: expand_id}, 'howToArrange');
+    
+    // vérifie que l'expand n'est pas déjà ouverte
+    if (expand_zone_how_to_arrange_parameter === 'spreaded') {
+        bga.cancel(_('You already have a zone visible'));
+    }
 
     if (cards_ids === undefined ) {
         cards_ids = bga.getElementsArray( {parent: parent_zone.id} );
@@ -232,10 +237,9 @@ function expand(zone_id_to_expand, cards_ids) {
     // ajoute le nom de la parent zone en tag à l'expand zone pour savoir où la collapse ensuite
     bga.addTag(expand_id, parent_zone.name);
     
-    
     var props = [];
     props[expand_id] = {
-        x: 350, 
+        x: 50, 
         y: 100, 
         width:700, 
         height:500, 
@@ -337,8 +341,8 @@ function onClickCard( card_id, selection_ids ) {
     bga.checkAction('selectCard');
     
     // check if the card clicked is on a board
-    if (parent_id === bga.getElement({name: 'BOARD'})) {
-      if (!bga.hasTag(parent_id, 'BOARD_'+ explicitActiveColor )) {
+    if (bga.hasTag(parent_id, 'BOARD')) {
+      if (parent_name != 'BOARD_'+ explicitActiveColor ) {
         bga.cancel( _('You have to chose a card you control') );      
       } else {
           switch (active_phase_zone_name) {
@@ -399,7 +403,7 @@ function onClickCard( card_id, selection_ids ) {
     }
     
     // Cas où la carte est au cimetière ou retirée de la partie
-    if ( (parent_id === bga.getElement({name: 'GRAVE'})) || (parent_id === bga.getElement({name: 'REMOVAL'})) ) {
+    if ( (bga.hasTag(parent_id,'GRAVE')) || (bga.hasTag(parent_id,'REMOVAL')) ) {
         // si aucune carte n'a été pré-sélectionnée, montre le cimetière / les cartes retirées de la partie
         if (selected_card_id === null) {
             this.expand(parent_id);
@@ -451,7 +455,7 @@ function onClickZone(zone_id) {
     var active_graveyard_id = bga.getElement({name: 'GRAVEYARD_' + this.getExplicitActiveColor()});
     var deck_id = bga.getElement({name: 'DECK'});
     var expand_zone_id = bga.getElement({name: 'EXPAND_ZONE'});
-    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_ZONE_' + this.getExplicitActiveColor()});
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
     if (selected_card_id === null) {
         bga.cancel('Please select a card.');
@@ -523,7 +527,7 @@ function onClickZone(zone_id) {
 }
 
 
-function scry(c_scryValue){
+function activateScry(c_scryValue){
     var cards_on_top_ids = [];
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
@@ -549,10 +553,8 @@ function hibernation() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
     var board_hibernation_values = bga.getElementsArray({parent: active_board_id}, 'c_hibernationValue');
-    var sum_hibernation_value = board_hibernation_values.reduce(add, 0);
-    function add(a, b) {
-    return parseInt(a) + parseInt(b);
-    }
+    var sum_hibernation_value = board_hibernation_values.reduce(this.add, 0);
+
     if (sum_hibernation_value > 0) {
         for (var i = 0; i < board_cards_ids.length; i++) {
             var props = [];
