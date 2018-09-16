@@ -91,6 +91,12 @@ function modifyFoodCost(card_id, value){
     bga.setProperties(props);
 }
 
+function modifyFoodProduction(card_id, value){
+    var props = [];
+    props[card_id] = {c_foodProduction: value};
+    bga.setProperties(props);
+}
+
 function getActivePlayerEnergyPoolId() {
     if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement({name: 'ENERGY_POOL_RED'});
     if (bga.getActivePlayerColor() == '008000') return bga.getElement({name: 'ENERGY_POOL_GREEN'});
@@ -351,27 +357,32 @@ function onClickCard( card_id, selection_ids ) {
     
     // check if the card clicked is on a board
     if (bga.hasTag(parent_id, 'BOARD')) {
-      if (parent_name != 'BOARD_'+ explicitActiveColor ) {
-        bga.cancel( _('You have to chose a card you control') );      
-      } else {
-          switch (active_phase_zone_name) {
-            case 'Energy_phase_zone':
-            case 'Feeding_phase_zone':
-                if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
-                    bga.log("Special effect not yet implemented...");
-                    } else {
-                    bga.cancel( _("This card has not any effect."));
-                    }
+        if (parent_name != 'BOARD_'+ explicitActiveColor ) {
+            bga.cancel( _('You have to chose a card you control') );      
+        } else {
+            switch (active_phase_zone_name) {
+                case 'Energy_phase_zone':
+                case 'Feeding_phase_zone':
+                    if (bga.hasTag(card_id, 'SPECIAL_EFFECT')) {
+                        bga.log("Special effect not yet implemented...");
+                        } else {
+                        bga.cancel( _("This card has not any effect."));
+                        }
+                    break;
+                case 'Buying_phase_zone':
+                    bga.cancel( _("You should select a card from the Evolution line."));
+                    break;
+                case 'Killing_phase_zone':                         
+                // cas de l'adipose (couche graisseuse), vérifie que la carte sélectionnée a cet effet et est au cimetière
+                if (bga.hasTag(clickable_rounded_card_id, 'ADIPOSE')){
+                this.transferAdipose(clickable_rounded_card_id, card_id);
+                } else {               
+                // in any other case, should select the card clicked and deselect the one clicked before, if any
+                bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+                bga.addStyle( card_id, 'selected' );
+                }
                 break;
-            case 'Buying_phase_zone':
-                bga.cancel( _("You should select a card from the Evolution line."));
-                break;
-            case 'Killing_phase_zone':
-              // in any case, should select the card clicked and deselect the one clicked before, if any
-              bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-              bga.addStyle( card_id, 'selected' );
-              break;
-              }
+            }
         }
     }
     if (parent_id === bga.getElement({name: 'EVOLUTION_LINE'})) {
@@ -434,12 +445,6 @@ function onClickCard( card_id, selection_ids ) {
         if (clickable_rounded_card_id != null) {
             bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
             bga.addStyle( card_id, 'selected' );
-        }
-            
-        // cas de l'adipose (couche graisseuse), vérifie que la carte sélectionnée a cet effet et est au cimetière
-        if ( (bga.hasTag(selected_card_id, 'ADIPOSE')) && (bga.hasTag(bga.getElement ( {id: selected_card_id}, 'parent'), 'GRAVEYARD_'+ explicitActiveColor)) ) {
-            
-            this.adipose(selected_card_id, card_id);
         }
     }
 }
@@ -621,36 +626,32 @@ function activateAdaptation(card_id) {
 
 
 function checkAdipose(card_id) {
-    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
-    
     if (bga.hasTag(card_id, 'ADIPOSE')) {
-    bga.addStyle( card_id, 'selected' );
-    this.expand(active_board_id);
+        this.activateAdipose(card_id);
     }
-    
-    return;
 }
 
-function adipose(adipose_card_id, targeted_card_id) {
+function activateAdipose(adipose_card_id){
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var active_board_cards_ids = bga.getElementsArray({parent: active_board_id});
+
+    bga.log('ADIPOSE EFFECT: you can add a +2n counter on a creature you control');
+    bga.addStyle(adipose_card_id, 'CLICKABLE_ROUNDED' );
+    bga.addStyle(active_board_cards_ids, 'clickable');
+}
+
+function transferAdipose(adipose_card_id, targeted_card_id) {
     var adipose_card_value = bga.getElement({id: adipose_card_id}, 'c_adiposeValue');
     var targeted_card_id_food_production = parseInt(bga.getElement({id: targeted_card_id}, 'c_foodProduction'));
-    var expand_zone_id = bga.getElement({name: 'Expand_zone'});
-    var props = [];
+    
     // augmente la food_production de la carte ciblée
     targeted_card_id_food_production += parseInt(adipose_card_value);
-    props[targeted_card_id] = {c_foodProduction: targeted_card_id_food_production};
-    bga.setProperties( props );
-    
-    // supprime la sélection de la carte adipose
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    this.modifyFoodProduction(targeted_card_id, targeted_card_id_food_production);
     
     bga.displayScoring(targeted_card_id, bga.getActivePlayerColor(), adipose_card_value);
     
-    // renvoie les cartes sur le board
-    bga.moveTo(bga.getElementsArray({parent: expand_zone_id}), bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() }));
-    
-    // range l'expand zone
-    this.collapse();
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
 }
 
 function growth() {
