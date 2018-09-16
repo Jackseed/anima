@@ -190,11 +190,10 @@ function enrollCreature(card_id) {
         bga.moveTo(card_id, dest_zone_id);
         // pioche une nouvelle
         this.draw();
+        
         // check si la carte jouée a scry 
-        if (bga.hasTag(card_id, 'SCRY')) {
-            bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
-            this.activateScry(bga.getElement({id: card_id}, "c_scryValue"));
-        }
+        this.checkScry(card_id); 
+
         // check si la carte jouée est volante
         if (bga.hasTag(card_id, 'FLYING')) {
             this.checkFlying(card_id);
@@ -379,26 +378,15 @@ function onClickCard( card_id, selection_ids ) {
             
             bga.cancel( _("You cannot do that (click on deck)"));
         
-        // cas où une carte a été pré-sélectionnée
-        } else 
-             // vérifie que la carte pré-sélectionnée vient de la zone 'expand'
-            if (bga.getElement ( {id: selected_card_id}, 'parent') === expand_zone_id) {
-                // vérifie qu'un scry est en cours
-                if (bga.hasTag(clickable_rounded_card_id, "SCRY")) {
-                    // si c'est le cas, remet la carte pré-sélectionnée au dessus du deck
-                    bga.flip(selected_card_id);                            
-                    bga.moveTo(selected_card_id, deck_id);
-                    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-                    
-                    // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
-                    var expand_cards = bga.getElementsArray({parent: expand_zone_id});
-                    if (expand_cards.length === 0) {
-                        bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
-                        this.collapse();
-                    }
-                }
+        // cas où une carte a été pré-sélectionnée depuis la zone expand
+        } else if (bga.getElement ( {id: selected_card_id}, 'parent') === expand_zone_id) {
+            // vérifie qu'un scry est en cours
+            if (bga.hasTag(clickable_rounded_card_id, "SCRY")) {
+                // si c'est le cas, remet la carte pré-sélectionnée au dessus du deck
+                this.scrySelectedCard(selected_card_id);
             } else {
-            bga.cancel("You cannot put this card on the deck");
+                bga.cancel("You cannot put this card on the deck");
+            }
         }
     }
     
@@ -432,7 +420,7 @@ function onClickCard( card_id, selection_ids ) {
                 this.collapse();
             }    
         }
-        // cas où un pouvoir est en cours (SCRY)
+        // cas où un pouvoir est en cours (comme Scry)
         if (clickable_rounded_card_id != null) {
             bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
             bga.addStyle( card_id, 'selected' );
@@ -526,26 +514,49 @@ function onClickZone(zone_id) {
     }
 }
 
-
-function activateScry(c_scryValue){
+function checkScry(card_id){
+    if (bga.hasTag(card_id, 'SCRY')) {
+        var scry_value = bga.getElement({id: card_id}, "c_scryValue");
+        this.activateScry(card_id, scry_value);       
+    }
+}
+    
+function activateScry(card_id, scry_value){
     var cards_on_top_ids = [];
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
+
+    bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
     // prévoit le cas où le deck est vide
     if (deck_cards.length === parseInt(0)) {
         bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
         bga.log('Cannot scry, no more card in the deck.');
     } else {    
-        var cards_to_show = Math.min(deck_cards.length, c_scryValue);
+        var cards_to_show = Math.min(deck_cards.length, scry_value);
         for (var i = 0; i < cards_to_show; i++) {
         var top_i_card_id = deck_cards[deck_cards.length - i - 1];
         cards_on_top_ids.push(top_i_card_id);
         }
         this.expand(deck_id, cards_on_top_ids);
-        bga.pause( 1500 );
         for (var j = 0; j < cards_on_top_ids.length; j++) {
             bga.flip( cards_on_top_ids[j] );
         }
+    }
+}
+
+function scrySelectedCard(selected_card_id){
+    var expand_zone_id = bga.getElement({name: 'Expand_zone'});
+    var deck_id = bga.getElement({name: 'DECK'});
+    
+    bga.flip(selected_card_id);                            
+    bga.moveTo(selected_card_id, deck_id);
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );    
+    // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
+
+    var expand_cards = bga.getElementsArray({parent: expand_zone_id});
+    if (expand_cards.length === parseInt(0)) {
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    this.collapse();
     }
 }
 
