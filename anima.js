@@ -54,6 +54,10 @@ function postSetup() {
 
 function tokenToEnergyPhaseZone() {
     this.growth();
+
+    if (this.isThereAdaptation()){
+        this.activateAdaptation();
+    }    
     
     var tokenId = bga.getElement( {name: "Phase_token"});
     var energyPhaseZone = bga.getElement( {name: "Energy_phase_zone"});
@@ -126,13 +130,11 @@ function getActivePlayerFoodCost() {
     var board_food_costs = bga.getElementsArray({parent: active_board_id}, 'c_foodCost');
     var sum_food_cost = board_food_costs.reduce(this.add, 0);    
 
-    if (isHibernation()){
+    if (this.isThereHibernation()){
     var sum_hibernation_value = activateHibernation();
     sum_food_cost -= sum_hibernation_value;    
     }     
 
-    this.checkAdaptation();
-    
     return sum_food_cost;
 }
 
@@ -180,8 +182,9 @@ function killCreature(card_id) {
     bga.setProperties(props);
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
     
-    this.checkAdipose(card_id);
-
+    if (this.isAdipose(card_id)){
+        this.activateAdipose(card_id);
+    }
 }
 
 function enrollCreature(card_id) {
@@ -207,8 +210,10 @@ function enrollCreature(card_id) {
         // pioche une nouvelle
         this.draw();
         
-        // check si la carte jouée a scry 
-        this.checkScry(card_id); 
+        // check si la carte jouée a scry
+        if (this.isScry(card_id)) {            
+            this.activateScry(card_id);      
+        } 
 
         // check si la carte jouée est volante
         if (bga.hasTag(card_id, 'FLYING')) {
@@ -321,6 +326,7 @@ function onPhaseTokenClick(token_id) {
        bga.nextPlayer();
        bga.nextState('done');
     } else {
+        bga.trace(sum_food_cost);
         bga.cancel( _('You do not have enough food to feed all your creatures.'))
     }
     break;
@@ -529,14 +535,14 @@ function onClickZone(zone_id) {
     }
 }
 
-function checkScry(card_id){
+function isScry(card_id){
     if (bga.hasTag(card_id, 'SCRY')) {
-        var scry_value = bga.getElement({id: card_id}, "c_scryValue");
-        this.activateScry(card_id, scry_value);       
+        return true; 
     }
 }
     
-function activateScry(card_id, scry_value){
+function activateScry(card_id){
+    var scry_value = bga.getElement({id: card_id}, "c_scryValue");
     var cards_on_top_ids = [];
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
@@ -575,7 +581,7 @@ function scrySelectedCard(selected_card_id){
     }
 }
 
-function isHibernation(){
+function isThereHibernation(){
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
     var is_hibernation = false;
@@ -606,28 +612,34 @@ function activateHibernation() {
     return sum_hibernation_value;
 }
 
-function checkAdaptation() {
+function isThereAdaptation() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
-
+    var isThereAdaptation = false;
     board_cards_ids.forEach(function(card_id){
         if (bga.hasTag(card_id, 'ADAPTATION') && (!bga.hasTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'))) {
-            this.activateAdaptation(card_id);
+            isThereAdaptation = true;
+        }
+    });
+    return isThereAdaptation;
+}
+
+function activateAdaptation() {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'ADAPTATION') && (!bga.hasTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'))) {
+            // adaptation: remplace le foodCost d'une carte par sa valeur d'adaptation
+            var adaptation_value = bga.getElement({id: card_id}, 'c_adaptationValue');
+            this.modifyFoodCost(card_id, adaptation_value);
+            bga.addTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'); 
         }
     });
 }
 
-function activateAdaptation(card_id) {
-    // adaptation: remplace le foodCost d'une carte par sa valeur d'adaptation
-    var adaptation_value = bga.getElement({id: card_id}, 'c_adaptationValue');
-    this.modifyFoodCost(card_id, adaptation_value);
-    bga.addTag(card_id, 'ADAPTATION_ALREADY_ACTIVATED'); 
-}
-
-
-function checkAdipose(card_id) {
+function isAdipose(card_id) {
     if (bga.hasTag(card_id, 'ADIPOSE')) {
-        this.activateAdipose(card_id);
+        return true;
     }
 }
 
