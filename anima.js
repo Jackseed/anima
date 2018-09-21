@@ -53,7 +53,9 @@ function postSetup() {
 }
 
 function tokenToEnergyPhaseZone() {
-    this.growth();
+    if (this.isThereGrowth()){
+        this.activateGrowth();
+    }
 
     if (this.isThereAdaptation()){
         this.activateAdaptation();
@@ -98,6 +100,12 @@ function modifyFoodCost(card_id, value){
 function modifyFoodProduction(card_id, value){
     var props = [];
     props[card_id] = {c_foodProduction: value};
+    bga.setProperties(props);
+}
+
+function modifyEnergyProduction(card_id, value){
+    var props = [];
+    props[card_id] = {c_energyProduction: value};
     bga.setProperties(props);
 }
 
@@ -666,25 +674,32 @@ function transferAdipose(adipose_card_id, targeted_card_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
 }
 
-function growth() {
+function isThereGrowth(){
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var is_there_growth = false;
+    
+    for (var i = 0; i < board_cards_ids.length; i++) {
+        if (bga.hasTag(board_cards_ids[i], 'GROWTH')) {
+            is_there_growth = true;
+            i = board_cards_ids.length;
+        }
+    }
+    return is_there_growth;
+}
+
+function activateGrowth() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
 
     for (var i = 0; i < board_cards_ids.length; i++) {
-        // vérifie qu'une carte a growth
         if (bga.hasTag(board_cards_ids[i], 'GROWTH')) {
-            // si oui, augmente ses stats
-            i_card_growth_value = bga.getElement({id: board_cards_ids[i]}, 'c_growthValue');
-            i_card_food_production = parseInt(bga.getElement({id: board_cards_ids[i]}, 'c_foodProduction'));
-            i_card_food_production += parseInt(i_card_growth_value);
-            i_card_energy_production = parseInt(bga.getElement({id: board_cards_ids[i]}, 'c_energyProduction'));
-            i_card_energy_production += parseInt(i_card_growth_value);
-            var props = [];
-            props[board_cards_ids[i]] = {
-                c_foodProduction: i_card_food_production,
-                c_energyProduction: i_card_energy_production
-            };
-            bga.setProperties(props);
+            var growth_value = parseInt(bga.getElement({id: board_cards_ids[i]}, 'c_growthValue'));
+            var new_food_production = parseInt(bga.getElement({id: board_cards_ids[i]}, 'c_foodProduction')) + growth_value;
+            var new_energy_production = parseInt(bga.getElement({id: board_cards_ids[i]}, 'c_energyProduction')) + growth_value;
+
+            this.modifyFoodProduction(board_cards_ids[i], new_food_production);
+            this.modifyEnergyProduction(board_cards_ids[i], new_energy_production);
         }
     }
 }
