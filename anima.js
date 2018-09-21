@@ -190,7 +190,7 @@ function killCreature(card_id) {
     bga.setProperties(props);
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
     
-    if (this.isAdipose(card_id)){
+    if (this.hasAdipose(card_id)){
         this.activateAdipose(card_id);
     }
 }
@@ -219,14 +219,15 @@ function enrollCreature(card_id) {
         this.draw();
         
         // check si la carte jouée a scry
-        if (this.isScry(card_id)) {            
+        if (this.hasScry(card_id)) {            
             this.activateScry(card_id);      
-        } 
+        }       
 
-        // check si la carte jouée est volante
-        if (bga.hasTag(card_id, 'FLYING')) {
-            this.checkFlying(card_id);
-        }
+        if (this.hasFlying(card_id)) {            
+            if(this.isThereOtherFlying()){
+                this.activateFlying(card_id);
+            }      
+        } 
     }
 }
 
@@ -543,7 +544,7 @@ function onClickZone(zone_id) {
     }
 }
 
-function isScry(card_id){
+function hasScry(card_id){
     if (bga.hasTag(card_id, 'SCRY')) {
         return true; 
     }
@@ -645,7 +646,7 @@ function activateAdaptation() {
     });
 }
 
-function isAdipose(card_id) {
+function hasAdipose(card_id) {
     if (bga.hasTag(card_id, 'ADIPOSE')) {
         return true;
     }
@@ -704,28 +705,37 @@ function activateGrowth() {
     }
 }
 
+function hasFlying(card_id){
+    if (bga.hasTag(card_id, 'FLYING')) {
+            return true;
+    }
+}
 
-function checkFlying(card_id) {
+function isThereOtherFlying() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
-    var evolution_line_id = bga.getElement({name: 'EVOLUTION_LINE'});
-    var evolution_line_cards_ids = bga.getElementsArray({parent: evolution_line_id});
     var flying_counter = 0;
+    var is_there_other_flying = false;
     
-    for (var i = 0; (i < board_cards_ids.length) && (flying_counter < 2); i++) {
+    for (var i = 0; (i < board_cards_ids.length) && (!is_there_other_flying); i++) {
         if (bga.hasTag(board_cards_ids[i], 'FLYING')) {
             if (flying_counter > 0) {
-                bga.log('FLYING EFFECT: you can remove a card from the Evolution line');
-                bga.addStyle( card_id, 'REDSELECTED' );
-                bga.addStyle( evolution_line_cards_ids, 'clickable' );
-                flying_counter++;
-                return true;
+                is_there_other_flying = true;
             } else {
                 flying_counter++;
             }
         }
     }
-    return false;
+    return is_there_other_flying;
+}
+
+function activateFlying(card_id){
+    var evolution_line_id = bga.getElement({name: 'EVOLUTION_LINE'});
+    var evolution_line_cards_ids = bga.getElementsArray({parent: evolution_line_id});
+
+    bga.log('FLYING EFFECT: you can remove a card from the Evolution line');
+    bga.addStyle( card_id, 'REDSELECTED' );
+    bga.addStyle( evolution_line_cards_ids, 'clickable' );
 }
 
 
