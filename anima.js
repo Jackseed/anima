@@ -325,6 +325,11 @@ function onPhaseTokenClick(token_id) {
     break;
     
     case 'Killing_phase_zone':
+    bga.moveTo(token_id, feeding_phase_zone_id);
+    bga.log("you're in feeding phase, a not fed animal is a dead animal.");
+    break;
+    
+    case 'Feeding_phase_zone':
     var food_pool = bga.getElement({id: this.getActivePlayerFoodPoolId()}, 'value');
     var sum_food_cost = this.getActivePlayerFoodCost();
 
@@ -336,12 +341,10 @@ function onPhaseTokenClick(token_id) {
        bga.nextState('done');
     } else {
         bga.trace(sum_food_cost);
-        bga.cancel( _('You do not have enough food to feed all your creatures.'))
+        bga.log('You do not have enough food to feed all your creatures.');
+        bga.moveTo(token_id, killing_phase_zone_id);
     }
-    break;
     
-    case 'Feeding_phase_zone':
-    bga.log("you're in feeding phase, a not fed animal is a dead animal.");
     break;
     
     case 'End_of_turn_phase_zone':
