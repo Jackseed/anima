@@ -353,7 +353,6 @@ function onPhaseTokenClick(token_id) {
   }
 }
 
-
 function onClickCard( card_id, selection_ids ) {
     // Cancel event propagation
     bga.stopEvent();
@@ -507,10 +506,7 @@ function onClickZone(zone_id) {
                         // 3e cas de la removal zone avec flying
                         } else if (zone_id == active_removal_zone_id) {
                             if (bga.hasTag(selected_card_id, 'sbstyle_CLICKABLE')) {
-                                bga.moveTo(selected_card_id, active_removal_zone_id);
-                                bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
-                                bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-                                this.draw();
+                                this.flyingRemoval(selected_card_id);
                             }
                         // cas où le joueur ne choisit ni un board, ni une removal zone
                         } else {
@@ -737,8 +733,26 @@ function activateFlying(card_id){
     var evolution_line_cards_ids = bga.getElementsArray({parent: evolution_line_id});
 
     bga.log('FLYING EFFECT: you can remove a card from the Evolution line');
-    bga.addStyle( card_id, 'REDSELECTED' );
-    bga.addStyle( evolution_line_cards_ids, 'clickable' );
+    bga.addStyle( card_id, 'CLICKABLE_ROUNDED' );
+    bga.addStyle( evolution_line_cards_ids, 'CLICKABLE' );
 }
 
+function flyingRemoval(selected_card_id){
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
+    bga.moveTo(selected_card_id, active_removal_zone_id);
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    this.draw();
+}
+
+function hasScavenger(card_id){
+    if (bga.hasTag(card_id, 'SCAVENGER')) {
+            return true;
+    }
+}
+
+function activateScavenger(card_id){
+
+}
