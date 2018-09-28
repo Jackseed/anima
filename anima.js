@@ -460,18 +460,25 @@ function onClickCard( card_id, selection_ids ) {
                 break;
 
                 case 'Feeding_phase_zone':
-                    // si la carte cliquée a scavenger, active son effet
-                    if (this.hasScavenger(card_id)) {
-                        if (clickable_rounded_card === null) {
+                    if (clickable_rounded_card === null){
+                        if (this.hasScavenger(card_id)) {
                             this.activateScavenger(card_id);
-                        } else if (this.hasScavenger(clickable_rounded_card)) {
-                            this.desactivateScavenger(clickable_rounded_card);
+                        } else if (this.hasCrane(card_id)) {
+                            this.activateCrane(card_id);
+                        } else {
+                            bga.cancel( _("This card has not any effect."));
                         }
-                        
-
                     } else {
-                        bga.cancel( _("This card has not any effect."));
-                    }   
+                        if (this.hasScavenger(clickable_rounded_card)) {
+                            this.desactivateScavenger(clickable_rounded_card);
+                        } else if (this.hasCrane(card_id)) {
+                            this.desactivateCrane(clickable_rounded_card);
+                        } else if (this.hasCrane(clickable_rounded_card)) {
+                            this.craneThisCreature(card_id, clickable_rounded_card);
+                        } else {
+                            bga.cancel( _("What the fuck ?"));
+                        }
+                    }
                 break;
             }
         }
@@ -889,6 +896,43 @@ function scavengeSelectedCards(scavenger, selected_cards) {
 
 function desactivateScavenger(scavenger){
     this.collapse();
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function hasCrane(card_id){
+    if (bga.hasTag(card_id, 'CRANE')) {
+            return true;
+    }
+}
+
+function activateCrane(card_id){
+    var active_board_id = bga.getElement({name: 'BOARD_' + this.getExplicitActiveColor()});
+    var active_board_cards_ids = bga.getElementsArray({parent: active_board_id});
+
+    // retire la grue des cartes qui seront clickable
+    var index = active_board_cards_ids.indexOf(card_id);
+    active_board_cards_ids.splice(index, 1);
+
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    bga.addStyle(card_id, 'CLICKABLE_ROUNDED');
+    bga.addStyle(active_board_cards_ids, 'CLICKABLE');
+    bga.log('Please select a creature you want to feed');
+}
+
+function craneThisCreature(target, crane){
+    var active_graveyard = bga.getElement({name: 'GRAVEYARD_' + this.getExplicitActiveColor()});
+
+    bga.moveTo(crane, active_graveyard);
+    this.modifyFoodCost(target, 0, true);
+    bga.log("Your target is fed.")
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function desactivateCrane(card_id){
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
