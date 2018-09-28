@@ -251,6 +251,10 @@ function removeCreature(selected_card_id){
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+
+    if (this.isThereVista()) {
+        this.activateScry(this.returnVistaId()); 
+    }
 }
 
 function enrollCreature(card_id) {
@@ -277,7 +281,7 @@ function enrollCreature(card_id) {
         this.draw();
         
         // check si la carte jouée a scry
-        if (this.hasScry(card_id)) {            
+        if (this.hasScry(card_id) && (bga.getElement({id: card_id}, 'name') != "Albatros majestueux")) {            
             this.activateScry(card_id);      
         }       
 
@@ -936,4 +940,30 @@ function desactivateCrane(card_id){
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function isThereVista(){
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var is_vista = false;
+
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'VISTA')) {
+            is_vista = true;
+        }
+    });
+    return is_vista;    
+}
+
+function returnVistaId() {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var vista_id = null; 
+
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'VISTA')) {
+            vista_id = card_id;
+        }
+    });
+    return vista_id;    
 }
