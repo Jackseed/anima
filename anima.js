@@ -1055,8 +1055,9 @@ function activateParrot(card_id){
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+    bga.trace(parrot_value);
 
-    if ( (this.hasJustArrived(card_id)) && (!this.hasNotPlayedEffectYet(card_id))  {
+    if ( this.hasJustArrived(card_id) && this.hasNotPlayedEffectYet(card_id) )  {
         bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
 
         for (var i =0; i < parrot_value; i++) {
@@ -1065,12 +1066,13 @@ function activateParrot(card_id){
                 i = 1000;
                 return ;
             }
-            var top_card_id = deck_cards[deck_cards.length - 1];
+            var top_card_id = deck_cards[deck_cards.length - 1 -i];
             bga.flip( top_card_id );
             bga.moveTo(top_card_id, active_removal_zone_id);
+            bga.trace(i);
         }
         this.effectPlayed(card_id);
     } else {
-        bga.cancel(_('This effect must be played when the creature arrives'));
+        bga.cancel(_('You cannot play this effect anymore'));
     }
 }
