@@ -288,7 +288,10 @@ function enrollCreature(card_id) {
         if (this.hasFlying(card_id)) {            
             if(this.isThereOtherFlying()){
                 this.activateFlying(card_id);
-            }      
+            }
+            if (this.hasParrot(card_id)) {
+                this.activateParrot(card_id);
+            }
         } 
     }
 }
@@ -966,4 +969,31 @@ function returnVistaId() {
         }
     });
     return vista_id;    
+}
+
+function hasParrot(card_id){
+    if (bga.hasTag(card_id, 'PARROT')) {
+            return true;
+    }
+}
+
+function activateParrot(card_id){
+    var parrot_value = bga.getElement({id: card_id}, "c_parrotValue");
+    var deck_id = bga.getElement({name: 'DECK'});
+    var deck_cards = bga.getElementsArray( {parent: deck_id} );
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+
+    bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
+
+    for (var i =0; i < parrot_value; i++) {
+        if (deck_cards.length === parseInt(0)) {
+            bga.log('Cannot remove any other card, no more card in the deck.');
+            i = 1000;
+            return ;
+        }
+        var top_card_id = deck_cards[deck_cards.length - 1];
+        bga.flip( top_card_id );
+        bga.pause(1000);
+        bga.moveTo(top_card_id, active_removal_zone_id);
+    }
 }
