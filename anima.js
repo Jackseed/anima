@@ -346,6 +346,21 @@ function hasJustArrived(card_id) {
     }
 }
 
+function effectPlayed(card_id) {
+    var props = [];    
+    props[card_id] = {c_effectPlayed: 1};
+    bga.setProperties(props);
+}
+
+function hasAlreadyPlayedItsEffect(card_id) {
+    var effect_played = parseInt(bga.getElement({id : card_id}, 'c_effectPlayed'));
+    if ( (effect_played === 1)) {
+        return true; 
+    } else {
+        return false;
+    }
+}
+
 function draw() {
     // remplace la carte achetée par la carte du dessus du deck
     var deck_id = bga.getElement({name: 'DECK'});
@@ -506,6 +521,7 @@ function onClickCard( card_id, selection_ids ) {
                         this.activateParrot(card_id);
                     } else {
                         bga.cancel( _("This creature has not any effect to be played right now"));
+                    }                
                 break;
                 
                 case 'Killing_phase_zone':
@@ -1040,7 +1056,7 @@ function activateParrot(card_id){
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
-    if (this.hasJustArrived(card_id)) {
+    if ( (this.hasJustArrived(card_id)) && (!this.hasAlreadyPlayedItsEffect(card_id))  {
         bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
 
         for (var i =0; i < parrot_value; i++) {
@@ -1051,10 +1067,9 @@ function activateParrot(card_id){
             }
             var top_card_id = deck_cards[deck_cards.length - 1];
             bga.flip( top_card_id );
-            bga.pause(1000);
             bga.moveTo(top_card_id, active_removal_zone_id);
         }
-
+        this.effectPlayed(card_id);
     } else {
         bga.cancel(_('This effect must be played when the creature arrives'));
     }
