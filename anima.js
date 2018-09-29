@@ -352,9 +352,9 @@ function effectPlayed(card_id) {
     bga.setProperties(props);
 }
 
-function hasAlreadyPlayedItsEffect(card_id) {
+function hasNotPlayedEffectYet(card_id) {
     var effect_played = parseInt(bga.getElement({id : card_id}, 'c_effectPlayed'));
-    if ( (effect_played === 1)) {
+    if ( (effect_played === 0)) {
         return true; 
     } else {
         return false;
@@ -1051,12 +1051,12 @@ function hasParrot(card_id){
 }
 
 function activateParrot(card_id){
-    var parrot_value = bga.getElement({id: card_id}, "c_parrotValue");
+    var parrot_value = parseInt(bga.getElement({id: card_id}, "c_parrotValue"));
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
-    if ( (this.hasJustArrived(card_id)) && (!this.hasAlreadyPlayedItsEffect(card_id))  {
+    if ( (this.hasJustArrived(card_id)) && (!this.hasNotPlayedEffectYet(card_id))  {
         bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
 
         for (var i =0; i < parrot_value; i++) {
