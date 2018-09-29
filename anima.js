@@ -72,6 +72,9 @@ function tokenToEnergyPhaseZone() {
     // accumule l'énergie créée
     this.setCounterValue(active_energy_pool_id, active_player_energy_production);
     bga.displayScoring(active_energy_pool_id, bga.getActivePlayerColor(), active_player_energy_production);
+
+    //augmente les compteurs de tour sur les créatures
+    this.incrementTurnCounters();
 }
 
 function checkEndOfGame() {
@@ -155,8 +158,6 @@ function modifyEnergyProduction(card_id, value){
     props[card_id] = {c_energyProduction: value};
     bga.setProperties(props);
 }
-
-
 
 function getActivePlayerEnergyPoolId() {
     if (bga.getActivePlayerColor() == 'ff0000') return bga.getElement({name: 'ENERGY_POOL_RED'});
@@ -280,7 +281,14 @@ function enrollCreature(card_id) {
         // pioche une nouvelle
         this.draw();
         
+        // cette partie permet de vérifier que l'effet joué l'est bien à son arrivée
+        if (this.hasEffectOnArrival(card_id)) {
+            this.countCreaturesOnArrival(card_id);
+        }
+
         // check si la carte jouée a scry
+        //partie Albatros permet de jouer l'albatros sans activer son scry automatiquement 
+        //mais lui permet de le faire plus tard
         if (this.hasScry(card_id) && (bga.getElement({id: card_id}, 'name') != "Albatros majestueux")) {            
             this.activateScry(card_id);      
         }       
@@ -289,10 +297,52 @@ function enrollCreature(card_id) {
             if(this.isThereOtherFlying()){
                 this.activateFlying(card_id);
             }
-            if (this.hasParrot(card_id)) {
-                this.activateParrot(card_id);
-            }
         } 
+    }
+}
+
+function hasEffectOnArrival(card_id) {
+    if (bga.hasTag(card_id, 'EFFECT_ON_ARRIVAL')) {
+        return true; 
+    }
+}
+
+function countCreaturesOnArrival(card_id) {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var props = [];
+    
+    props[card_id] = {c_creaturesOnArrival: parseInt(board_cards_ids.length)};
+    bga.setProperties(props);
+}
+
+function incrementTurnCounters() {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'TURN_COUNTER')) {
+            var turn_counter_value = bga.getElement({id: card_id}, "c_turnCounter");
+            var props = [];
+            
+            turn_counter_value = parseInt(turn_counter_value) + 1;
+            props[card_id] = {c_turnCounter: turn_counter_value};
+            bga.setProperties(props);
+        }
+    });
+}
+
+function hasJustArrived(card_id){
+    var creatures_on_arrival = parseInt(bga.getElement({id : card_id}, 'c_creaturesOnArrival'));
+    var turn_counter_value = parseInt(bga.getElement({id : card_id}, 'c_turnCounter'));
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var creatures_on_board = parseInt(board_cards_ids.length);
+
+    if ( (turn_counter_value === 1) && (creatures_on_arrival === creatures_on_board)) {
+        return true; 
+    } else {
+        return false;
     }
 }
 
@@ -662,6 +712,10 @@ function onClickZone(zone_id) {
         }
     }
 }
+
+
+
+
 
 function hasScry(card_id){
     if (bga.hasTag(card_id, 'SCRY')) {
