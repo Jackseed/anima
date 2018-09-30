@@ -382,7 +382,7 @@ function draw() {
 // cards_ids is optional, will take the cards into the zone to expand if not defined
 function expand(zone_id_to_expand, cards_ids) {
     var parent_zone = bga.getElement( {id: zone_id_to_expand}, ['id','name'] );
-    var expand_id = bga.getElement( {name: 'Expand_zone' } );
+    var expand_id = bga.getElement( {name: 'EXPAND_ZONE' } );
     var tag_name = bga.getElement({id : expand_id}, 'tags');
     var tag_name_string = tag_name.toString();
     var expand_zone_how_to_arrange_parameter = bga.getElement({id: expand_id}, 'howToArrange');
@@ -416,7 +416,7 @@ function expand(zone_id_to_expand, cards_ids) {
 }
 
 function collapse(){
-    var expand_id = bga.getElement( {name: 'Expand_zone' } );
+    var expand_id = bga.getElement( {name: 'EXPAND_ZONE' } );
     var parent_name = bga.getElement ({id: expand_id}, 'tags');
     var parent_name_string = parent_name.toString();
     var parent_id = bga.getElement({name: parent_name_string});
@@ -498,7 +498,7 @@ function onClickCard( card_id, selection_ids ) {
     var selected_card_id = this.getSelectedCard();
     var clickable_rounded_card = this.getClickableRoundedCard();
     var deck_id = bga.getElement({name: 'DECK'});
-    var expand_zone_id = bga.getElement({name: 'Expand_zone'});
+    var expand_zone_id = bga.getElement({name: 'EXPAND_ZONE'});
     var evolution_line_id = bga.getElement({name: 'EVOLUTION_LINE'});
     var active_graveyard_id = bga.getElement({name: 'GRAVEYARD_'+explicitActiveColor});
     var active_removal = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
@@ -712,7 +712,7 @@ function onClickZone(zone_id) {
                         bga.cancel('Please select a board to play this card');
                     }
                 // cas où une carte de l'expand zone a été sélectionnée au préalable (effets type SCRY)
-                } else if (bga.hasTag(selected_card_id_zone,"EXPAND_ZONE")) {
+                } else if (selected_card_id_zone === expand_zone_id) {
                     //si le deck est clické ensuite, on la retourne et la met au dessus du deck
                     if (zone_id == deck_id) {
                         if (clickable_rounded_card !== null) {
@@ -720,19 +720,22 @@ function onClickZone(zone_id) {
                                 this.scrySelectedCard(selected_card_id);                        
                             }
                         }
-                    } else if (zone_id === active_board_id) {
+                    } else if (zone_id == active_board_id) {
                         if (clickable_rounded_card !== null) {
                             if (this.hasParrot(clickable_rounded_card)) { 
-                                this.moveTo(selected_card_id, active_board_id);
+                                bga.moveTo(selected_card_id, active_board_id);
                                 this.activateEffectOnArrival(selected_card_id);
+                                this.desactivateParrot(clickable_rounded_card);
                             }
                         }
                     } else {
-                        bga.cancel("You cannot do that.");
+                        bga.trace(zone_id);
+                        bga.trace(active_board_id);
+                        bga.cancel("You cannot do that.(1)");
                     }
                 // autres cas non encore possible
                 } else {
-                    bga.cancel('You cannot do that.');
+                    bga.cancel('You cannot do that.(2)');
                 }
 
             break;
@@ -753,16 +756,12 @@ function onClickZone(zone_id) {
                         }
                     }
                 } else {
-                    bga.cancel('You cannot do that.');
+                    bga.cancel('You cannot do that. (3)');
                 }
             break;
         }
     }
 }
-
-
-
-
 
 function hasScry(card_id){
     if (bga.hasTag(card_id, 'SCRY')) {
@@ -799,7 +798,7 @@ function activateScry(card_id){
 }
 
 function scrySelectedCard(selected_card_id){
-    var expand_zone_id = bga.getElement({name: 'Expand_zone'});
+    var expand_zone_id = bga.getElement({name: 'EXPAND_ZONE'});
     var deck_id = bga.getElement({name: 'DECK'});
     
     bga.flip(selected_card_id);                            
@@ -1095,6 +1094,7 @@ function activateParrot(card_id){
             }
             var top_card_id = deck_cards[deck_cards.length - 1 -i];
             bga.flip( top_card_id );
+            bga.pause(1000);
             bga.moveTo(top_card_id, active_removal_zone_id);
         }
 
@@ -1108,7 +1108,10 @@ function activateParrot(card_id){
             }
         }
         if (three_or_less_removed) {
+            bga.pause(1000);
             this.expand(active_removal_zone_id);
+        } else {
+            bga.log('You do not have any creature to resurrect (energy cost 3 or less)');
         }
         this.effectPlayed(card_id);
 
