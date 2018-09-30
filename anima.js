@@ -243,18 +243,25 @@ function killCreature(card_id) {
     if (this.hasAdipose(card_id)){
         this.activateAdipose(card_id);
     }
+    if (this.hasPhoenix(card_id)) {
+        this.layTheEgg();
+    }
 }
 
-function removeCreature(selected_card_id){
+function removeCreature(card_id){
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
-    bga.moveTo(selected_card_id, active_removal_zone_id);
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.moveTo(card_id, active_removal_zone_id);
+
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
 
     if (this.isThereVista()) {
         this.activateScry(this.returnVistaId()); 
+    }
+    if (this.isThereEgg()) {
+        this.incrementEggCounters();
     }
 }
 
@@ -285,6 +292,7 @@ function enrollCreature(card_id) {
     }
 }
 
+// s'exéctue avec enrollCreature et playSpecificCreatureOnBoard 
 function activateEffectOnArrival(card_id) {
     // cette partie permet de vérifier que l'effet joué l'est bien à son arrivée
         if (this.hasEffectOnArrival(card_id)) {
@@ -523,13 +531,27 @@ function onClickCard( card_id, selection_ids ) {
                 case 'Buying_phase_zone':
                     if (clickable_rounded_card === null) {
                         if (this.hasParrot(card_id)) {
-                            this.activateParrot(card_id);
+                            this.activateParrotRemoval(card_id);
+                        }
+                        if (this.hasPhoenix(card_id)) {
+                            this.activatePhoenix(card_id);
+                        }
+                        if (this.hasDragon(card_id)){
+                            this.activateDragonCall(card_id);
+                        }
+                        else {
+                            bga.cancel( _("This creature has not any effect to be played right now"));
                         }
                     } else {
                         // si parrot est en cours et qu'on clique sur le parrot
                         if (this.hasParrot(clickable_rounded_card) && this.hasParrot(card_id)) {
                             this.desactivateParrot(card_id);
-                        } else {
+                        } 
+                        if (this.hasPhoenix(clickable_rounded_card) && this.hasPhoenix(card_id)) {
+                            this.desactivatePhoenix(card_id);
+                        }
+
+                        else {
                             bga.cancel( _("This creature has not any effect to be played right now"));
                         }
                     }                
@@ -722,16 +744,22 @@ function onClickZone(zone_id) {
                         }
                     } else if (zone_id == active_board_id) {
                         if (clickable_rounded_card !== null) {
-                            if (this.hasParrot(clickable_rounded_card)) { 
-                                bga.moveTo(selected_card_id, active_board_id);
-                                this.activateEffectOnArrival(selected_card_id);
-                                this.desactivateParrot(clickable_rounded_card);
+                            if (this.hasParrot(clickable_rounded_card)) {
+                                this.resurrect(selected_card_id); 
                             }
                         }
                     } else {
-                        bga.trace(zone_id);
-                        bga.trace(active_board_id);
                         bga.cancel("You cannot do that.(1)");
+                    }
+                // cas où une carte du board a été sélectionnée au préalable
+                } else if (selected_card_id_zone === active_board_id) {
+
+                    if (clickable_rounded_card !== null) {
+                        if (zone_id == active_graveyard_id){
+                            if (this.hasPhoenix(clickable_rounded_card)) {
+                                this.sacrificePhoenix(clickable_rounded_card);
+                            }
+                        }
                     }
                 // autres cas non encore possible
                 } else {
@@ -1077,11 +1105,10 @@ function hasParrot(card_id){
     }
 }
 
-function activateParrot(card_id){
+function activateParrotRemoval(card_id){
     var parrot_value = parseInt(bga.getElement({id: card_id}, "c_parrotValue"));
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
-    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
     if ( this.hasJustArrived(card_id) && this.hasNotPlayedEffectYet(card_id) )  {
         bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
@@ -1095,34 +1122,197 @@ function activateParrot(card_id){
             var top_card_id = deck_cards[deck_cards.length - 1 -i];
             bga.flip( top_card_id );
             bga.pause(1000);
-            bga.moveTo(top_card_id, active_removal_zone_id);
+            this.removeCreature(top_card_id);
         }
-
-        // vérifie qu'il existe une carte au coût inférieur à 3 dans le removal
-        var active_removal_cards = bga.getElementsArray({parent: active_removal_zone_id});
-        var three_or_less_removed = false;
-        for (var j = 0; j < active_removal_cards.length; j++) {
-            var energy_cost_j = parseInt(bga.getElement({id: active_removal_cards[j]}, "c_energyCost"));
-            if (energy_cost_j <= 3) {
-                three_or_less_removed = true;   
-            }
-        }
-        if (three_or_less_removed) {
-            bga.pause(1000);
-            this.expand(active_removal_zone_id);
-        } else {
-            bga.log('You do not have any creature to resurrect (energy cost 3 or less)');
-        }
-        this.effectPlayed(card_id);
+        this.parrotResurrection(card_id)
 
     } else {
         bga.cancel(_('You cannot play this effect anymore'));
     }
 }
 
+function parrotResurrection(parrot_id) {
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+    var active_removal_cards = bga.getElementsArray({parent: active_removal_zone_id});
+    var three_or_less_removed = false;
+
+    // vérifie qu'il existe une carte au coût inférieur à 3 dans le removal
+    for (var j = 0; j < active_removal_cards.length; j++) {
+        var energy_cost_j = parseInt(bga.getElement({id: active_removal_cards[j]}, "c_energyCost"));
+        if (energy_cost_j <= 3) {
+            three_or_less_removed = true;   
+        }
+    }
+    if (three_or_less_removed) {
+        bga.addStyle(parrot_id, 'CLICKABLE_ROUNDED' );
+        bga.pause(1000);
+        this.expand(active_removal_zone_id);
+    } else {
+        bga.log('You do not have any creature to resurrect (energy cost 3 or less)');
+    }
+    this.effectPlayed(parrot_id);
+} 
+
 function desactivateParrot(card_id){
     this.collapse();
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function hasPhoenix(card_id){
+    if (bga.hasTag(card_id, 'PHOENIX')) {
+            return true;
+    }
+}
+
+function activatePhoenix(card_id) {
+    bga.addStyle(card_id, 'CLICKABLE_ROUNDED');
+    bga.addStyle(card_id, 'selected');
+}
+
+function sacrificePhoenix(phoenix_id) {
+    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor()});
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    var active_energy_pool = this.getActivePlayerEnergyPoolId();
+    var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
+    var sacrifice_value = parseInt(bga.getElement({id: phoenix_id}, "c_sacrificeValue"));
+    var new_energy_pool_value = energy_pool_value + sacrifice_value;
+    
+    bga.moveTo(phoenix_id, active_graveyard);
+    this.layTheEgg();
+    this.setCounterValue(active_energy_pool, new_energy_pool_value);
+    bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);    
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function layTheEgg(){
+    var oeuf = bga.getElement({name: 'Oeuf de phoenix'});
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    bga.moveTo(oeuf, active_board);
+}
+
+function desactivatePhoenix(card_id) {
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function isThereEgg(){
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var is_there_egg = false;
+    
+    for (var i = 0; i < board_cards_ids.length; i++) {
+        if (bga.hasTag(board_cards_ids[i], 'EGG')) {
+            is_there_egg = true;
+            i = board_cards_ids.length;
+        }
+    }
+    return is_there_egg;
+}
+
+function incrementEggCounters() {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'EGG')) {
+            var egg_counter_value = parseInt(bga.getElement({id: card_id}, "c_eggCounters"));
+            var hatching_value = parseInt(bga.getElement({id: card_id}, "c_hatchingValue"));
+            var props = [];
+            
+            if (egg_counter_value < (hatching_value - 1)) {
+                egg_counter_value = parseInt(egg_counter_value) + 1;
+                props[card_id] = {c_eggCounters: egg_counter_value};
+                bga.setProperties(props);
+                bga.displayScoring(card_id, bga.getActivePlayerColor(), 1);  
+            } else {
+                this.hatch(card_id);
+            }
+            
+        }
+    });
+}
+
+function hatch(egg){
+    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor() });
+    var active_graveyard_cards = bga.getElementsArray({parent: active_graveyard});
+
+    this.killCreature(egg);
+
+    active_graveyard_cards.forEach(function(graveyard_card){
+        var graveyard_card_name = bga.getElement({id: graveyard_card}, "name");
+        if(graveyard_card_name === "Jeune phoenix"){
+            this.playSpecificCreatureOnBoard(graveyard_card);
+            return;
+        }
+    });
+}
+
+function playSpecificCreatureOnBoard(card) {
+    var clickable_rounded_card = getClickableRoundedCard();
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    
+    bga.moveTo(card, active_board);
+    this.activateEffectOnArrival(card);
+
+    if(clickable_rounded_card !== null) {
+        if(hasParrot(clickable_rounded_card)) {
+            this.desactivateParrot(clickable_rounded_card);
+        }
+    }
+}
+
+function hasDragon(card_id) {
+    if (bga.hasTag(card_id, 'DRAGON')) {
+            return true;
+    }
+}
+
+function activateDragonCall(played_dragon_id) {
+    var brother_dragon_id = this.getBrotherDragonId(played_dragon_id);   
+
+    if ( this.hasJustArrived(played_dragon_id) && this.hasNotPlayedEffectYet(played_dragon_id) ) {
+        if (!this.isBrotherDragonOnBoard(played_dragon_id)) {
+            bga.addStyle(played_dragon_id, 'CLICKABLE_ROUNDED');
+            this.playSpecificCreatureOnBoard(brother_dragon_id);
+            bga.removeStyle( played_dragon_id, 'CLICKABLE_ROUNDED' );
+            this.effectPlayed(played_dragon_id); 
+        } else {
+            bga.cancel(_('Your brother dragon is already with you'));
+        }
+    } else {
+        bga.cancel(_('You cannot activate this effect anymore.'));
+    }
+
+}
+
+function getBrotherDragonId(played_dragon_id) {
+    var played_dragon_name = bga.getElement({id: played_dragon_id}, "name");
+    var brother_dragon_name = "";
+    var brother_dragon_id = null;
+
+    if (played_dragon_name === "Dodu") {
+        brother_dragon_name = "Kurokawa";
+    } else {
+        brother_dragon_name = "Dodu";
+    }
+    brother_dragon_id = bga.getElement({name: brother_dragon_name});
+    
+    return brother_dragon_id;
+}
+
+function isBrotherDragonOnBoard(played_dragon_id) {
+    var brother_dragon_id = getBrotherDragonId(played_dragon_id);
+    var parent_zone_brother_dragon_id = bga.getElement( {id: brother_dragon_id}, 'parent');
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    var is_brother_dragon_on_board = false;
+
+    if (parent_zone_brother_dragon_id === active_board){
+        is_brother_dragon_on_board = true;
+    }
+
+    return is_brother_dragon_on_board;
 }
