@@ -245,16 +245,19 @@ function killCreature(card_id) {
     }
 }
 
-function removeCreature(selected_card_id){
+function removeCreature(card_id){
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
-    bga.moveTo(selected_card_id, active_removal_zone_id);
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.moveTo(card_id, active_removal_zone_id);
+    bga.removeStyle( card_id, 'CLICKABLE' );
+    bga.removeStyle( card_id, 'selected' );
+    bga.removeStyle( card_id, 'CLICKABLE_ROUNDED' );
 
     if (this.isThereVista()) {
         this.activateScry(this.returnVistaId()); 
+    }
+    if (this.isThereEgg()) {
+        this.incrementEggCounters();
     }
 }
 
@@ -733,10 +736,8 @@ function onClickZone(zone_id) {
                         }
                     } else if (zone_id == active_board_id) {
                         if (clickable_rounded_card !== null) {
-                            if (this.hasParrot(clickable_rounded_card)) { 
-                                bga.moveTo(selected_card_id, active_board_id);
-                                this.activateEffectOnArrival(selected_card_id);
-                                this.desactivateParrot(clickable_rounded_card);
+                            if (this.hasParrot(clickable_rounded_card)) {
+                                this.resurrect(selected_card_id); 
                             }
                         }
                     } else {
@@ -1114,7 +1115,7 @@ function activateParrot(card_id){
             var top_card_id = deck_cards[deck_cards.length - 1 -i];
             bga.flip( top_card_id );
             bga.pause(1000);
-            bga.moveTo(top_card_id, active_removal_zone_id);
+            this.removeCreature(top_card_id);
         }
 
         // vérifie qu'il existe une carte au coût inférieur à 3 dans le removal
@@ -1159,20 +1160,90 @@ function activatePhoenix(card_id) {
 
 function sacrificePhoenix(card_id) {
     var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor()});
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     var active_energy_pool = this.getActivePlayerEnergyPoolId();
     var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
     var sacrifice_value = parseInt(bga.getElement({id: card_id}, "c_sacrificeValue"));
     var new_energy_pool_value = energy_pool_value + sacrifice_value;
+    var oeuf = bga.getElement({name: 'Oeuf de phoenix'});
     
     bga.moveTo(card_id, active_graveyard);
     this.setCounterValue(active_energy_pool, new_energy_pool_value);
     bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);    
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    bga.moveTo(oeuf, active_board);
+
 }
 
 function desactivatePhoenix(card_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function isThereEgg(){
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+    var is_there_egg = false;
+    
+    for (var i = 0; i < board_cards_ids.length; i++) {
+        if (bga.hasTag(board_cards_ids[i], 'EGG')) {
+            is_there_egg = true;
+            i = board_cards_ids.length;
+        }
+    }
+    return is_there_egg;
+}
+
+function incrementEggCounters() {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
+    var board_cards_ids = bga.getElementsArray({parent: active_board_id});
+
+    board_cards_ids.forEach(function(card_id){
+        if (bga.hasTag(card_id, 'EGG')) {
+            var egg_counter_value = parseInt(bga.getElement({id: card_id}, "c_eggCounters"));
+            var hatching_value = parseInt(bga.getElement({id: card_id}, "c_hatchingValue"));
+            var props = [];
+            
+            if (egg_counter_value < hatching_value) {
+                egg_counter_value = parseInt(egg_counter_value) + 1;
+                props[card_id] = {c_eggCounters: egg_counter_value};
+                bga.setProperties(props);
+                bga.displayScoring(card_id, bga.getActivePlayerColor(), 1);  
+            } else {
+                this.hatch(card_id);
+            }
+            
+        }
+    });
+}
+
+function hatch(egg){
+    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor() });
+    var active_graveyard_cards = bga.getElementsArray({parent: active_graveyard});
+
+    this.killCreature(egg);
+
+    active_graveyard_cards.forEach(function(graveyard_card){
+        var graveyard_card_name = bga.getElement({id: graveyard_card}, "name");
+        if(graveyard_card_name === "Jeune phoenix"){
+            this.resurrect(graveyard_card);
+            return;
+        }
+    });
+}
+
+function resurrect(card) {
+    var clickable_rounded_card = getClickableRoundedCard();
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    
+    bga.moveTo(card, active_board);
+    this.activateEffectOnArrival(card);
+
+    if(clickable_rounded_card !== null) {
+        if(hasParrot(clickable_rounded_card)) {
+            this.desactivateParrot(clickable_rounded_card);
+        }
+    }
 }
