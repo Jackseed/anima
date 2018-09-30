@@ -292,6 +292,7 @@ function enrollCreature(card_id) {
     }
 }
 
+// s'exéctue avec enrollCreature et playSpecificCreatureOnBoard 
 function activateEffectOnArrival(card_id) {
     // cette partie permet de vérifier que l'effet joué l'est bien à son arrivée
         if (this.hasEffectOnArrival(card_id)) {
@@ -310,13 +311,6 @@ function activateEffectOnArrival(card_id) {
                 this.activateFlying(card_id);
             }
         } 
-
-        if (this.hasDragon(card_id)){
-            if(!this.isBrotherDragonOnBoard()) {
-                var brother_dragon_id = this.getBrotherDragonId(card_id);
-                this.playSpecificCreatureOnBoard(brother_dragon_id);
-            }
-        }
 }
 
 function hasEffectOnArrival(card_id) {
@@ -537,10 +531,13 @@ function onClickCard( card_id, selection_ids ) {
                 case 'Buying_phase_zone':
                     if (clickable_rounded_card === null) {
                         if (this.hasParrot(card_id)) {
-                            this.parrotRemoval(card_id);
+                            this.activateParrotRemoval(card_id);
                         }
                         if (this.hasPhoenix(card_id)) {
                             this.activatePhoenix(card_id);
+                        }
+                        if (this.hasDragon(card_id)){
+                            this.activateDragonCall(card_id);
                         }
                         else {
                             bga.cancel( _("This creature has not any effect to be played right now"));
@@ -1108,7 +1105,7 @@ function hasParrot(card_id){
     }
 }
 
-function parrotRemoval(card_id){
+function activateParrotRemoval(card_id){
     var parrot_value = parseInt(bga.getElement({id: card_id}, "c_parrotValue"));
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
@@ -1274,10 +1271,28 @@ function hasDragon(card_id) {
     }
 }
 
+function activateDragonCall(played_dragon_id) {
+    var brother_dragon_id = this.getBrotherDragonId(played_dragon_id);   
+
+    if ( this.hasJustArrived(played_dragon_id) && this.hasNotPlayedEffectYet(played_dragon_id) ) {
+        if (!this.isBrotherDragonOnBoard(played_dragon_id)) {
+            bga.addStyle(played_dragon_id, 'CLICKABLE_ROUNDED');
+            this.playSpecificCreatureOnBoard(brother_dragon_id);
+            bga.removeStyle( played_dragon_id, 'CLICKABLE_ROUNDED' );
+            this.effectPlayed(played_dragon_id); 
+        } else {
+            bga.cancel(_('Your brother dragon is already with you'));
+        }
+    } else {
+        bga.cancel(_('You cannot activate this effect anymore.'));
+    }
+
+}
+
 function getBrotherDragonId(played_dragon_id) {
     var played_dragon_name = bga.getElement({id: played_dragon_id}, "name");
     var brother_dragon_name = "";
-    var brother_dragon_id = ;
+    var brother_dragon_id = null;
 
     if (played_dragon_name === "Dodu") {
         brother_dragon_name = "Kurokawa";
@@ -1286,12 +1301,12 @@ function getBrotherDragonId(played_dragon_id) {
     }
     brother_dragon_id = bga.getElement({name: brother_dragon_name});
     
-    return brother_dragon_id
+    return brother_dragon_id;
 }
 
 function isBrotherDragonOnBoard(played_dragon_id) {
-    var brother_dragon_id = getBrotherDragonId();
-    var parent_zone_brother_dragon = bga.getElement( {id: brother_dragon_id}, 'parent');
+    var brother_dragon_id = getBrotherDragonId(played_dragon_id);
+    var parent_zone_brother_dragon_id = bga.getElement( {id: brother_dragon_id}, 'parent');
     var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     var is_brother_dragon_on_board = false;
 
