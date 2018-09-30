@@ -528,11 +528,19 @@ function onClickCard( card_id, selection_ids ) {
                         if (this.hasPhoenix(card_id)) {
                             this.activatePhoenix(card_id);
                         }
+                        else {
+                            bga.cancel( _("This creature has not any effect to be played right now"));
+                        }
                     } else {
                         // si parrot est en cours et qu'on clique sur le parrot
                         if (this.hasParrot(clickable_rounded_card) && this.hasParrot(card_id)) {
                             this.desactivateParrot(card_id);
-                        } else {
+                        } 
+                        if (this.hasPhoenix(clickable_rounded_card) && this.hasPhoenix(card_id)) {
+                            this.desactivatePhoenix(card_id);
+                        }
+
+                        else {
                             bga.cancel( _("This creature has not any effect to be played right now"));
                         }
                     }                
@@ -734,14 +742,16 @@ function onClickZone(zone_id) {
                     } else {
                         bga.cancel("You cannot do that.(1)");
                     }
-
+                // cas où une carte du board a été sélectionnée au préalable
                 } else if (selected_card_id_zone === active_board_id) {
+
                     if (clickable_rounded_card !== null) {
                         if (zone_id == active_graveyard_id){
                             if (this.hasPhoenix(clickable_rounded_card)) {
                                 this.sacrificePhoenix(clickable_rounded_card);
                             }
                         }
+                    }
                 // autres cas non encore possible
                 } else {
                     bga.cancel('You cannot do that.(2)');
@@ -1148,7 +1158,7 @@ function activatePhoenix(card_id) {
 }
 
 function sacrificePhoenix(card_id) {
-    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+explicitActiveColor});
+    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor()});
     var active_energy_pool = this.getActivePlayerEnergyPoolId();
     var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
     var sacrifice_value = parseInt(bga.getElement({id: card_id}, "c_sacrificeValue"));
@@ -1156,5 +1166,13 @@ function sacrificePhoenix(card_id) {
     
     bga.moveTo(card_id, active_graveyard);
     this.setCounterValue(active_energy_pool, new_energy_pool_value);
-    bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);
+    bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);    
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function desactivatePhoenix(card_id) {
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
