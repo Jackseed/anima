@@ -525,6 +525,9 @@ function onClickCard( card_id, selection_ids ) {
                         if (this.hasParrot(card_id)) {
                             this.activateParrot(card_id);
                         }
+                        if (this.hasPhoenix(card_id)) {
+                            this.activatePhoenix(card_id);
+                        }
                     } else {
                         // si parrot est en cours et qu'on clique sur le parrot
                         if (this.hasParrot(clickable_rounded_card) && this.hasParrot(card_id)) {
@@ -729,10 +732,16 @@ function onClickZone(zone_id) {
                             }
                         }
                     } else {
-                        bga.trace(zone_id);
-                        bga.trace(active_board_id);
                         bga.cancel("You cannot do that.(1)");
                     }
+
+                } else if (selected_card_id_zone === active_board_id) {
+                    if (clickable_rounded_card !== null) {
+                        if (zone_id == active_graveyard_id){
+                            if (this.hasPhoenix(clickable_rounded_card)) {
+                                this.sacrificePhoenix(clickable_rounded_card);
+                            }
+                        }
                 // autres cas non encore possible
                 } else {
                     bga.cancel('You cannot do that.(2)');
@@ -1125,4 +1134,27 @@ function desactivateParrot(card_id){
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
+function hasPhoenix(card_id){
+    if (bga.hasTag(card_id, 'PHOENIX')) {
+            return true;
+    }
+}
+
+function activatePhoenix(card_id) {
+    bga.addStyle(card_id, 'CLICKABLE_ROUNDED');
+    bga.addStyle(card_id, 'selected');
+}
+
+function sacrificePhoenix(card_id) {
+    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+explicitActiveColor});
+    var active_energy_pool = this.getActivePlayerEnergyPoolId();
+    var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
+    var sacrifice_value = parseInt(bga.getElement({id: card_id}, "c_sacrificeValue"));
+    var new_energy_pool_value = energy_pool_value + sacrifice_value;
+    
+    bga.moveTo(card_id, active_graveyard);
+    this.setCounterValue(active_energy_pool, new_energy_pool_value);
+    bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);
 }
