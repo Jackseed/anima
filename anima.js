@@ -281,7 +281,12 @@ function enrollCreature(card_id) {
         // pioche une nouvelle
         this.draw();
         
-        // cette partie permet de vérifier que l'effet joué l'est bien à son arrivée
+        this.activateEffectOnArrival(card_id);
+    }
+}
+
+function activateEffectOnArrival(card_id) {
+    // cette partie permet de vérifier que l'effet joué l'est bien à son arrivée
         if (this.hasEffectOnArrival(card_id)) {
             this.countCreaturesOnArrival(card_id);
         }
@@ -289,7 +294,7 @@ function enrollCreature(card_id) {
         // check si la carte jouée a scry
         //partie Albatros permet de jouer l'albatros sans activer son scry automatiquement 
         //mais lui permet de le faire plus tard
-        if (this.hasScry(card_id) && (bga.getElement({id: card_id}, 'name') != "Albatros majestueux")) {            
+        if (this.hasScry(card_id) && (bga.getElement({id: card_id}, 'name') !== "Albatros majestueux")) {            
             this.activateScry(card_id);      
         }       
 
@@ -298,7 +303,6 @@ function enrollCreature(card_id) {
                 this.activateFlying(card_id);
             }
         } 
-    }
 }
 
 function hasEffectOnArrival(card_id) {
@@ -504,7 +508,7 @@ function onClickCard( card_id, selection_ids ) {
     
     // check if the card clicked is on a board
     if (bga.hasTag(parent_id, 'BOARD')) {
-        if (parent_name != 'BOARD_'+ explicitActiveColor ) {
+        if (parent_name !== 'BOARD_'+ explicitActiveColor ) {
             bga.cancel( _('You have to chose a card you control') );      
         } else {
             switch (active_phase_zone_name) {
@@ -517,10 +521,17 @@ function onClickCard( card_id, selection_ids ) {
                 break;
                 
                 case 'Buying_phase_zone':
-                    if (bga.hasTag(card_id, 'PARROT')) {
-                        this.activateParrot(card_id);
+                    if (clickable_rounded_card === null) {
+                        if (this.hasParrot(card_id)) {
+                            this.activateParrot(card_id);
+                        }
                     } else {
-                        bga.cancel( _("This creature has not any effect to be played right now"));
+                        // si parrot est en cours et qu'on clique sur le parrot
+                        if (this.hasParrot(clickable_rounded_card) && this.hasParrot(card_id)) {
+                            this.desactivateParrot(card_id);
+                        } else {
+                            bga.cancel( _("This creature has not any effect to be played right now"));
+                        }
                     }                
                 break;
                 
@@ -544,6 +555,7 @@ function onClickCard( card_id, selection_ids ) {
                         } else {
                             bga.cancel( _("This card has not any effect."));
                         }
+                    // cas où un effet est actif (clickable rounded card)    
                     } else {
                         if (this.hasScavenger(clickable_rounded_card)) {
                             this.desactivateScavenger(clickable_rounded_card);
@@ -588,7 +600,7 @@ function onClickCard( card_id, selection_ids ) {
     // Cas où la carte est au cimetière ou retirée de la partie
     if ( (bga.hasTag(parent_id,'GRAVE')) || (bga.hasTag(parent_id,'REMOVAL')) ) {
         // si aucune carte n'a été pré-sélectionnée, montre le cimetière / les cartes retirées de la partie
-        if ((clickable_rounded_card != null) && (parent_id === active_removal)){
+        if ((clickable_rounded_card !== null) && (parent_id === active_removal)){
             if(this.hasScavenger(clickable_rounded_card)) {
                 this.scavengeSelectedCards(clickable_rounded_card, selected_cards);
             }
@@ -635,7 +647,15 @@ function onClickCard( card_id, selection_ids ) {
                     bga.addStyle( card_id, 'selected');
                 }
             }
-
+            if (this.hasParrot(clickable_rounded_card)) {
+                var energy_cost = parseInt(bga.getElement({id: card_id}, "c_energyCost"));
+                if (energy_cost <= 3) {
+                    bga.removeStyle(bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+                    bga.addStyle(card_id, 'selected');
+                } else {
+                    bga.cancel(_('You have to select a creature with 3 or less energy cost.'));
+                }
+            }
     }
 }
 
@@ -681,7 +701,7 @@ function onClickZone(zone_id) {
                         }
                     // 3e cas de la removal zone avec flying
                     } else if (zone_id == active_removal_zone_id) {
-                        if (clickable_rounded_card != null) {
+                        if (clickable_rounded_card !== null) {
                             if (this.hasFlying(clickable_rounded_card)) { 
                                 this.removeCreature(selected_card_id);
                                 this.draw();
@@ -691,22 +711,30 @@ function onClickZone(zone_id) {
                     } else {
                         bga.cancel('Please select a board to play this card');
                     }
-                // cas où une carte de la zone de vision du deck a été sélectionnée au préalable SCRY
+                // cas où une carte de l'expand zone a été sélectionnée au préalable (effets type SCRY)
                 } else if (bga.hasTag(selected_card_id_zone,"EXPAND_ZONE")) {
                     //si le deck est clické ensuite, on la retourne et la met au dessus du deck
                     if (zone_id == deck_id) {
-                        if (clickable_rounded_card != null) {
+                        if (clickable_rounded_card !== null) {
                             if (this.hasScry(clickable_rounded_card)) { 
                                 this.scrySelectedCard(selected_card_id);                        
                             }
                         }
+                    } else if (zone_id === active_board_id) {
+                        if (clickable_rounded_card !== null) {
+                            if (this.hasParrot(clickable_rounded_card)) { 
+                                this.moveTo(selected_card_id, active_board_id);
+                                this.activateEffectOnArrival(selected_card_id);
+                            }
+                        }
                     } else {
-                        bga.cancel("Please select the deck.");
+                        bga.cancel("You cannot do that.");
                     }
                 // autres cas non encore possible
                 } else {
                     bga.cancel('You cannot do that.');
                 }
+
             break;
             
             case 'Killing_phase_zone':
@@ -719,7 +747,7 @@ function onClickZone(zone_id) {
             
             case 'Feeding_phase_zone':
                 if (zone_id == active_removal_zone_id) {
-                    if (clickable_rounded_card != null) {
+                    if (clickable_rounded_card !== null) {
                         if(this.hasScavenger(clickable_rounded_card)) {
                             this.scavengeSelectedCards(clickable_rounded_card, selected_cards);
                         }
@@ -1055,7 +1083,6 @@ function activateParrot(card_id){
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
-    bga.trace(parrot_value);
 
     if ( this.hasJustArrived(card_id) && this.hasNotPlayedEffectYet(card_id) )  {
         bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
@@ -1069,10 +1096,30 @@ function activateParrot(card_id){
             var top_card_id = deck_cards[deck_cards.length - 1 -i];
             bga.flip( top_card_id );
             bga.moveTo(top_card_id, active_removal_zone_id);
-            bga.trace(i);
+        }
+
+        // vérifie qu'il existe une carte au coût inférieur à 3 dans le removal
+        var active_removal_cards = bga.getElementsArray({parent: active_removal_zone_id});
+        var three_or_less_removed = false;
+        for (var j = 0; j < active_removal_cards.length; j++) {
+            var energy_cost_j = parseInt(bga.getElement({id: active_removal_cards[j]}, "c_energyCost"));
+            if (energy_cost_j <= 3) {
+                three_or_less_removed = true;   
+            }
+        }
+        if (three_or_less_removed) {
+            this.expand(active_removal_zone_id);
         }
         this.effectPlayed(card_id);
+
     } else {
         bga.cancel(_('You cannot play this effect anymore'));
     }
+}
+
+function desactivateParrot(card_id){
+    this.collapse();
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
