@@ -243,15 +243,19 @@ function killCreature(card_id) {
     if (this.hasAdipose(card_id)){
         this.activateAdipose(card_id);
     }
+    if (this.hasPhoenix(card_id)) {
+        this.layTheEgg();
+    }
 }
 
 function removeCreature(card_id){
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
     bga.moveTo(card_id, active_removal_zone_id);
-    bga.removeStyle( card_id, 'CLICKABLE' );
-    bga.removeStyle( card_id, 'selected' );
-    bga.removeStyle( card_id, 'CLICKABLE_ROUNDED' );
+
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
 
     if (this.isThereVista()) {
         this.activateScry(this.returnVistaId()); 
@@ -526,7 +530,7 @@ function onClickCard( card_id, selection_ids ) {
                 case 'Buying_phase_zone':
                     if (clickable_rounded_card === null) {
                         if (this.hasParrot(card_id)) {
-                            this.activateParrot(card_id);
+                            this.parrotRemoval(card_id);
                         }
                         if (this.hasPhoenix(card_id)) {
                             this.activatePhoenix(card_id);
@@ -1097,11 +1101,10 @@ function hasParrot(card_id){
     }
 }
 
-function activateParrot(card_id){
+function parrotRemoval(card_id){
     var parrot_value = parseInt(bga.getElement({id: card_id}, "c_parrotValue"));
     var deck_id = bga.getElement({name: 'DECK'});
     var deck_cards = bga.getElementsArray( {parent: deck_id} );
-    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
 
     if ( this.hasJustArrived(card_id) && this.hasNotPlayedEffectYet(card_id) )  {
         bga.addStyle(card_id, 'CLICKABLE_ROUNDED' );
@@ -1117,28 +1120,34 @@ function activateParrot(card_id){
             bga.pause(1000);
             this.removeCreature(top_card_id);
         }
-
-        // vérifie qu'il existe une carte au coût inférieur à 3 dans le removal
-        var active_removal_cards = bga.getElementsArray({parent: active_removal_zone_id});
-        var three_or_less_removed = false;
-        for (var j = 0; j < active_removal_cards.length; j++) {
-            var energy_cost_j = parseInt(bga.getElement({id: active_removal_cards[j]}, "c_energyCost"));
-            if (energy_cost_j <= 3) {
-                three_or_less_removed = true;   
-            }
-        }
-        if (three_or_less_removed) {
-            bga.pause(1000);
-            this.expand(active_removal_zone_id);
-        } else {
-            bga.log('You do not have any creature to resurrect (energy cost 3 or less)');
-        }
-        this.effectPlayed(card_id);
+        this.parrotResurrection(card_id)
 
     } else {
         bga.cancel(_('You cannot play this effect anymore'));
     }
 }
+
+function parrotResurrection(parrot_id) {
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+    var active_removal_cards = bga.getElementsArray({parent: active_removal_zone_id});
+    var three_or_less_removed = false;
+
+    // vérifie qu'il existe une carte au coût inférieur à 3 dans le removal
+    for (var j = 0; j < active_removal_cards.length; j++) {
+        var energy_cost_j = parseInt(bga.getElement({id: active_removal_cards[j]}, "c_energyCost"));
+        if (energy_cost_j <= 3) {
+            three_or_less_removed = true;   
+        }
+    }
+    if (three_or_less_removed) {
+        bga.addStyle(parrot_id, 'CLICKABLE_ROUNDED' );
+        bga.pause(1000);
+        this.expand(active_removal_zone_id);
+    } else {
+        bga.log('You do not have any creature to resurrect (energy cost 3 or less)');
+    }
+    this.effectPlayed(parrot_id);
+} 
 
 function desactivateParrot(card_id){
     this.collapse();
@@ -1176,6 +1185,7 @@ function sacrificePhoenix(phoenix_id) {
 
 function layTheEgg(){
     var oeuf = bga.getElement({name: 'Oeuf de phoenix'});
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     bga.moveTo(oeuf, active_board);
 }
 
