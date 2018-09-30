@@ -310,6 +310,13 @@ function activateEffectOnArrival(card_id) {
                 this.activateFlying(card_id);
             }
         } 
+
+        if (this.hasDragon(card_id)){
+            if(!this.isBrotherDragonOnBoard()) {
+                var brother_dragon_id = this.getBrotherDragonId(card_id);
+                this.playSpecificCreatureOnBoard(brother_dragon_id);
+            }
+        }
 }
 
 function hasEffectOnArrival(card_id) {
@@ -1219,7 +1226,7 @@ function incrementEggCounters() {
             var hatching_value = parseInt(bga.getElement({id: card_id}, "c_hatchingValue"));
             var props = [];
             
-            if (egg_counter_value < hatching_value) {
+            if (egg_counter_value < (hatching_value - 1)) {
                 egg_counter_value = parseInt(egg_counter_value) + 1;
                 props[card_id] = {c_eggCounters: egg_counter_value};
                 bga.setProperties(props);
@@ -1241,13 +1248,13 @@ function hatch(egg){
     active_graveyard_cards.forEach(function(graveyard_card){
         var graveyard_card_name = bga.getElement({id: graveyard_card}, "name");
         if(graveyard_card_name === "Jeune phoenix"){
-            this.resurrect(graveyard_card);
+            this.playSpecificCreatureOnBoard(graveyard_card);
             return;
         }
     });
 }
 
-function resurrect(card) {
+function playSpecificCreatureOnBoard(card) {
     var clickable_rounded_card = getClickableRoundedCard();
     var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     
@@ -1259,4 +1266,38 @@ function resurrect(card) {
             this.desactivateParrot(clickable_rounded_card);
         }
     }
+}
+
+function hasDragon(card_id) {
+    if (bga.hasTag(card_id, 'DRAGON')) {
+            return true;
+    }
+}
+
+function getBrotherDragonId(played_dragon_id) {
+    var played_dragon_name = bga.getElement({id: played_dragon_id}, "name");
+    var brother_dragon_name = "";
+    var brother_dragon_id = ;
+
+    if (played_dragon_name === "Dodu") {
+        brother_dragon_name = "Kurokawa";
+    } else {
+        brother_dragon_name = "Dodu";
+    }
+    brother_dragon_id = bga.getElement({name: brother_dragon_name});
+    
+    return brother_dragon_id
+}
+
+function isBrotherDragonOnBoard(played_dragon_id) {
+    var brother_dragon_id = getBrotherDragonId();
+    var parent_zone_brother_dragon = bga.getElement( {id: brother_dragon_id}, 'parent');
+    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    var is_brother_dragon_on_board = false;
+
+    if (parent_zone_brother_dragon_id === active_board){
+        is_brother_dragon_on_board = true;
+    }
+
+    return is_brother_dragon_on_board;
 }
