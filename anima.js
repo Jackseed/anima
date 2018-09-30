@@ -250,6 +250,7 @@ function killCreature(card_id) {
 
 function removeCreature(card_id){
     var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+    var clickable_rounded_card = this.getClickableRoundedCard();
 
     bga.moveTo(card_id, active_removal_zone_id);
 
@@ -262,6 +263,10 @@ function removeCreature(card_id){
     }
     if (this.isThereEgg()) {
         this.incrementEggCounters();
+    }
+
+    if(this.hasOwl(clickable_rounded_card)) {
+        this.activateOwl(card_id);
     }
 }
 
@@ -1315,4 +1320,14 @@ function isBrotherDragonOnBoard(played_dragon_id) {
     }
 
     return is_brother_dragon_on_board;
+}
+
+function hasOwl(card_id){
+    if (bga.hasTag(card_id, 'OWL')) {
+            return true;
+    }
+}
+
+function activateOwl(card_id) {
+    this.playSpecificCreatureOnBoard(card_id);
 }
