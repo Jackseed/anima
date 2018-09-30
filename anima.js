@@ -1158,22 +1158,25 @@ function activatePhoenix(card_id) {
     bga.addStyle(card_id, 'selected');
 }
 
-function sacrificePhoenix(card_id) {
+function sacrificePhoenix(phoenix_id) {
     var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor()});
     var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     var active_energy_pool = this.getActivePlayerEnergyPoolId();
     var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
-    var sacrifice_value = parseInt(bga.getElement({id: card_id}, "c_sacrificeValue"));
+    var sacrifice_value = parseInt(bga.getElement({id: phoenix_id}, "c_sacrificeValue"));
     var new_energy_pool_value = energy_pool_value + sacrifice_value;
-    var oeuf = bga.getElement({name: 'Oeuf de phoenix'});
     
-    bga.moveTo(card_id, active_graveyard);
+    bga.moveTo(phoenix_id, active_graveyard);
+    this.layTheEgg();
     this.setCounterValue(active_energy_pool, new_energy_pool_value);
     bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);    
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
-    bga.moveTo(oeuf, active_board);
+}
 
+function layTheEgg(){
+    var oeuf = bga.getElement({name: 'Oeuf de phoenix'});
+    bga.moveTo(oeuf, active_board);
 }
 
 function desactivatePhoenix(card_id) {
