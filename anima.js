@@ -1196,14 +1196,17 @@ function activatePhoenix(card_id) {
 }
 
 function sacrificePhoenix(phoenix_id) {
-    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor()});
+    var void_id = bga.getElement({name: 'VOID' });
     var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     var active_energy_pool = this.getActivePlayerEnergyPoolId();
     var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
     var sacrifice_value = parseInt(bga.getElement({id: phoenix_id}, "c_sacrificeValue"));
     var new_energy_pool_value = energy_pool_value + sacrifice_value;
-    
-    bga.moveTo(phoenix_id, active_graveyard);
+    bga.trace(void_id);
+    bga.trace(phoenix_id);
+    bga.moveTo(phoenix_id, void_id);
+    bga.pause(1000);
+
     this.layTheEgg();
     this.setCounterValue(active_energy_pool, new_energy_pool_value);
     bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);    
@@ -1211,11 +1214,26 @@ function sacrificePhoenix(phoenix_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
 
+function getACardIdFromTheVoid(researched_card_name){
+    var void_id = bga.getElement({name: 'VOID' });
+    var void_cards_ids = bga.getElementsArray({parent: void_id});
+    var researched_card_id = null;
+
+    void_cards_ids.forEach(function(card_id){
+        var card_name = bga.getElement({id: card_id}, 'name');        
+        if (card_name == researched_card_name) {
+            researched_card_id = card_id;
+        }
+    });
+    return researched_card_id;
+}
+
 function layTheEgg(){
-    var oeuf = bga.getElement({name: 'Oeuf de phoenix'});
+    var oeuf = this.getACardIdFromTheVoid('Oeuf de phoenix');
     var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     bga.moveTo(oeuf, active_board);
 }
+
 
 function desactivatePhoenix(card_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
@@ -1260,19 +1278,14 @@ function incrementEggCounters() {
     });
 }
 
-function hatch(egg){
+function hatch(egg_id){
     var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor() });
     var active_graveyard_cards = bga.getElementsArray({parent: active_graveyard});
+    var void_id = bga.getElement({name: 'VOID' });
+    var young_phoenix_id = this.getACardIdFromTheVoid('Jeune phoenix');
 
-    this.killCreature(egg);
-
-    active_graveyard_cards.forEach(function(graveyard_card){
-        var graveyard_card_name = bga.getElement({id: graveyard_card}, "name");
-        if(graveyard_card_name === "Jeune phoenix"){
-            this.playSpecificCreatureOnBoard(graveyard_card);
-            return;
-        }
-    });
+    bga.moveTo(egg_id, void_id);
+    this.playSpecificCreatureOnBoard(young_phoenix_id);
 }
 
 function playSpecificCreatureOnBoard(card_id) {
