@@ -189,7 +189,7 @@ function getActivePlayerFoodCost() {
     var sum_food_cost = board_food_costs.reduce(this.add, 0);    
 
     if (this.isThereHibernation()){
-    var sum_hibernation_value = activateHibernation();
+    var sum_hibernation_value = getHibernationValue();
     sum_food_cost -= sum_hibernation_value;    
     }     
 
@@ -242,9 +242,6 @@ function killCreature(card_id) {
     
     if (this.hasAdipose(card_id)){
         this.activateAdipose(card_id);
-    }
-    if (this.hasPhoenix(card_id)) {
-        this.layTheEgg();
     }
 }
 
@@ -877,14 +874,15 @@ function activateScry(card_id){
 
 function scrySelectedCard(selected_card_id){
     var expand_zone_id = bga.getElement({name: 'EXPAND_ZONE'});
+    var expand_cards = bga.getElementsArray({parent: expand_zone_id});
     var deck_id = bga.getElement({name: 'DECK'});
     
+    // retourne face cachée la carte sélectionnée puis la remet au dessus du deck
     bga.flip(selected_card_id);                            
     bga.moveTo(selected_card_id, deck_id);
-    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );    
-    // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' ); 
 
-    var expand_cards = bga.getElementsArray({parent: expand_zone_id});
+    // vérifie qu'il y a encore des cartes dans la zone expand, sinon la referme
     if (expand_cards.length === parseInt(0)) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
     this.collapse();
@@ -905,7 +903,7 @@ function isThereHibernation(){
     
 }
 
-function activateHibernation() {
+function getHibernationValue() {
     var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor() });
     var board_cards_ids = bga.getElementsArray({parent: active_board_id});
     var board_hibernation_values = bga.getElementsArray({parent: active_board_id}, 'c_hibernationValue');
@@ -1257,14 +1255,6 @@ function getACardIdWithItsNameFromASpecificZone(researched_card_name, zone_id){
     });
     return researched_card_id;
 }
-
-function layTheEgg(){
-    var void_id = bga.getElement({name: 'VOID' });
-    var oeuf_if = this.getACardIdWithItsNameFromASpecificZone('Oeuf de phoenix', void_id);
-    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
-    bga.moveTo(oeuf_id, active_board_id);
-}
-
 
 function desactivatePhoenix(card_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
