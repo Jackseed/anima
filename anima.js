@@ -670,7 +670,6 @@ function onClickCard( card_id, selection_ids ) {
             }
             // effet du flying
             else if ((clickable_rounded_card != null) && (parent_id == active_removal_id) ) {
-                bga.log('this is a flying removal.');
                 if (this.hasFlying(clickable_rounded_card)) { 
                     this.removeCreature(selected_card_id);
                     this.draw();
