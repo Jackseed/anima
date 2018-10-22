@@ -520,7 +520,7 @@ function onClickCard( card_id, selection_ids ) {
     var expand_zone_id = bga.getElement({name: 'EXPAND_ZONE'});
     var evolution_line_id = bga.getElement({name: 'EVOLUTION_LINE'});
     var active_graveyard_id = bga.getElement({name: 'GRAVEYARD_'+explicitActiveColor});
-    var active_removal = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+    var active_removal_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
     
     // Check play action
     bga.checkAction('selectCard');
@@ -646,21 +646,38 @@ function onClickCard( card_id, selection_ids ) {
     
     // Cas où la carte est au cimetière ou retirée de la partie
     if ( (bga.hasTag(parent_id,'GRAVE')) || (bga.hasTag(parent_id,'REMOVAL')) ) {
-        // si aucune carte n'a été pré-sélectionnée, montre le cimetière / les cartes retirées de la partie
-        if ((clickable_rounded_card !== null) && (parent_id === active_removal)){
+        // effet du SCAVENGER
+        if ((clickable_rounded_card !== null) && (parent_id === active_removal_id)){
             if(this.hasScavenger(clickable_rounded_card)) {
                 this.scavengeSelectedCards(clickable_rounded_card, selected_cards);
             }
         }
+        // si aucune carte n'a été pré-sélectionnée, montre le cimetière / les cartes retirées de la partie
         if (selected_card_id === null) {
             this.expand(parent_id);
         } else {
+            if ((clickable_rounded_card != null) && (parent_id == active_removal_id) ) {
+                bga.log('this is a flying removal.');
+                if (this.hasFlying(clickable_rounded_card)) { 
+                    this.removeCreature(selected_card_id);
+                    this.draw();
+                }
+            }
             // si une carte a été pré-sélectionnée et qu'il s'agit du cimetière actif
             // la déplace au cimetière si phase 3
-            if ((parent_id === active_graveyard_id) && (active_phase_zone_name === 'Killing_phase_zone')) {
+            else if ((parent_id === active_graveyard_id) && (active_phase_zone_name === 'Killing_phase_zone')) {
               this.killCreature(selected_card_id);                
-            } else {
+            }
+            // effet du flying
+            else if ((clickable_rounded_card != null) && (parent_id == active_removal_id) ) {
+                bga.log('this is a flying removal.');
+                if (this.hasFlying(clickable_rounded_card)) { 
+                    this.removeCreature(selected_card_id);
+                    this.draw();
+                }
+            }
             // ne peut pas être fait sinon
+            else {
               bga.cancel( _('You cannot play this card here.') );
             }
         }
@@ -1212,17 +1229,17 @@ function activatePhoenix(card_id) {
 }
 
 function sacrificePhoenix(phoenix_id) {
-    var void_id = bga.getElement({name: 'VOID' });
-    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     var active_energy_pool = this.getActivePlayerEnergyPoolId();
     var energy_pool_value = parseInt(bga.getElement({id: active_energy_pool}, 'value'));
     var sacrifice_value = parseInt(bga.getElement({id: phoenix_id}, "c_sacrificeValue"));
     var new_energy_pool_value = energy_pool_value + sacrifice_value;
-    bga.trace(void_id);
-    bga.trace(phoenix_id);
-    bga.moveTo(phoenix_id, void_id);
+    var void_id = bga.getElement({name: 'VOID' });
+    var oeuf_id = this.getACardIdWithItsNameFromASpecificZone('Oeuf de phoenix', void_id);
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
 
-    this.layTheEgg();
+    bga.removeElement(phoenix_id);
+    bga.moveTo(oeuf_id, active_board_id);
+
     this.setCounterValue(active_energy_pool, new_energy_pool_value);
     bga.displayScoring(active_energy_pool, bga.getActivePlayerColor(), sacrifice_value);    
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
@@ -1244,9 +1261,9 @@ function getACardIdWithItsNameFromASpecificZone(researched_card_name, zone_id){
 
 function layTheEgg(){
     var void_id = bga.getElement({name: 'VOID' });
-    var oeuf = this.getACardIdWithItsNameFromASpecificZone('Oeuf de phoenix', void_id);
-    var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
-    bga.moveTo(oeuf, active_board);
+    var oeuf_if = this.getACardIdWithItsNameFromASpecificZone('Oeuf de phoenix', void_id);
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    bga.moveTo(oeuf_id, active_board_id);
 }
 
 
@@ -1293,15 +1310,10 @@ function incrementEggCounters() {
     });
 }
 
-function hatch(card_id){
-    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
-    var removed_cards_zone_id = bga.getElement({name: 'REMOVED_CARDS_ZONE' });
-    var young_phoenix_id = this.getACardIdWithItsNameFromASpecificZone('Jeune phoenix', removed_cards_zone_id);
-
-    bga.trace(card_id);
-    bga.trace(removed_cards_zone_id);
-
-    bga.moveTo(card_id, active_removal_zone_id);
+function hatch(egg_id){
+    var void_id = bga.getElement({name: 'VOID' });
+    var young_phoenix_id = this.getACardIdWithItsNameFromASpecificZone('Jeune phoenix', void_id);
+    bga.removeElement(egg_id);
 
     this.playSpecificCreatureOnBoard(young_phoenix_id);
 }
