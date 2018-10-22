@@ -297,6 +297,13 @@ function enrollCreature(card_id) {
     }
 }
 
+function playSpecificCreatureOnBoard(card_id) {
+    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
+    
+    bga.moveTo(card_id, active_board_id);
+    this.activateEffectOnArrival(card_id);
+}
+
 // s'exéctue avec enrollCreature et playSpecificCreatureOnBoard 
 function activateEffectOnArrival(card_id) {
     // cette partie permet de vérifier que l'effet joué l'est bien à son arrivée
@@ -310,7 +317,7 @@ function activateEffectOnArrival(card_id) {
         if (this.hasScry(card_id) && (bga.getElement({id: card_id}, 'name') !== "Albatros majestueux")) {            
             this.activateScry(card_id);      
         }       
-
+        // check si la carte à flying, si oui l'active
         if (this.hasFlying(card_id)) {            
             if(this.isThereOtherFlying()){
                 this.activateFlying(card_id);
@@ -564,6 +571,9 @@ function onClickCard( card_id, selection_ids ) {
                         }  
                         if (this.hasPhoenix(clickable_rounded_card) && this.hasPhoenix(card_id)) {
                             this.desactivatePhoenix(card_id);
+                        }
+                        if (this.hasFlying(clickable_rounded_card) && this.hasFlying(card_id)) {
+                            this.desactivateFlying(card_id);
                         }
 
                         else {
@@ -1013,6 +1023,12 @@ function activateFlying(card_id){
     bga.addStyle( evolution_line_cards_ids, 'CLICKABLE' );
 }
 
+function desactivateFlying(card_id){
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE_ROUNDED'}), 'CLICKABLE_ROUNDED' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_CLICKABLE'}), 'CLICKABLE' );
+    bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
+}
+
 
 
 function hasScavenger(card_id){
@@ -1205,7 +1221,6 @@ function sacrificePhoenix(phoenix_id) {
     bga.trace(void_id);
     bga.trace(phoenix_id);
     bga.moveTo(phoenix_id, void_id);
-    bga.pause(1000);
 
     this.layTheEgg();
     this.setCounterValue(active_energy_pool, new_energy_pool_value);
@@ -1214,12 +1229,11 @@ function sacrificePhoenix(phoenix_id) {
     bga.removeStyle( bga.getElements( {tag: 'sbstyle_selected'}), 'selected' );
 }
 
-function getACardIdFromTheVoid(researched_card_name){
-    var void_id = bga.getElement({name: 'VOID' });
-    var void_cards_ids = bga.getElementsArray({parent: void_id});
+function getACardIdWithItsNameFromASpecificZone(researched_card_name, zone_id){
+    var zone_cards_ids = bga.getElementsArray({parent: zone_id});
     var researched_card_id = null;
 
-    void_cards_ids.forEach(function(card_id){
+    zone_cards_ids.forEach(function(card_id){
         var card_name = bga.getElement({id: card_id}, 'name');        
         if (card_name == researched_card_name) {
             researched_card_id = card_id;
@@ -1229,7 +1243,8 @@ function getACardIdFromTheVoid(researched_card_name){
 }
 
 function layTheEgg(){
-    var oeuf = this.getACardIdFromTheVoid('Oeuf de phoenix');
+    var void_id = bga.getElement({name: 'VOID' });
+    var oeuf = this.getACardIdWithItsNameFromASpecificZone('Oeuf de phoenix', void_id);
     var active_board = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
     bga.moveTo(oeuf, active_board);
 }
@@ -1278,21 +1293,17 @@ function incrementEggCounters() {
     });
 }
 
-function hatch(egg_id){
-    var active_graveyard = bga.getElement({name: 'GRAVEYARD_'+ this.getExplicitActiveColor() });
-    var active_graveyard_cards = bga.getElementsArray({parent: active_graveyard});
-    var void_id = bga.getElement({name: 'VOID' });
-    var young_phoenix_id = this.getACardIdFromTheVoid('Jeune phoenix');
+function hatch(card_id){
+    var active_removal_zone_id = bga.getElement({name: 'REMOVAL_' + this.getExplicitActiveColor()});
+    var removed_cards_zone_id = bga.getElement({name: 'REMOVED_CARDS_ZONE' });
+    var young_phoenix_id = this.getACardIdWithItsNameFromASpecificZone('Jeune phoenix', removed_cards_zone_id);
 
-    bga.moveTo(egg_id, void_id);
+    bga.trace(card_id);
+    bga.trace(removed_cards_zone_id);
+
+    bga.moveTo(card_id, active_removal_zone_id);
+
     this.playSpecificCreatureOnBoard(young_phoenix_id);
-}
-
-function playSpecificCreatureOnBoard(card_id) {
-    var active_board_id = bga.getElement({name: 'BOARD_'+ this.getExplicitActiveColor()});
-    
-    bga.moveTo(card_id, active_board_id);
-    this.activateEffectOnArrival(card_id);
 }
 
 function hasDragon(card_id) {
